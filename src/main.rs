@@ -42,7 +42,7 @@ async fn ws_upgrade_handler(ws: WebSocketUpgrade, State(state): State<SharedStat
     ws.on_upgrade(|socket| handle_socket(socket, state))
 }
 
-async fn handle_socket(mut socket: WebSocket, state: SharedState) {
+async fn handle_socket(socket: WebSocket, state: SharedState) {
     let (mut sender, mut receiver) = socket.split();
 
     {
