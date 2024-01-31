@@ -1,15 +1,16 @@
-# sochess-ws
+# Sovereign Chess Backend Service
 
-To install dependencies:
+Backend built in Rust, using Axum for the web server.
 
-```bash
-bun install
-```
-
-To run:
+To run locally:
 
 ```bash
-bun run index.ts
+source .env
+cargo run
 ```
 
-This project was created using `bun init` in bun v1.0.21. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+To build binary:
+
+```bash
+cargo build --release --verbose
+```
