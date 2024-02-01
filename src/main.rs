@@ -47,7 +47,8 @@ async fn main() {
 
     let api_routes = Router::new()
         .route("/games", get(handler::get_games))
-        .route("/games", post(handler::create_game));
+        .route("/games", post(handler::create_game))
+        .route("/games/:id", get(handler::get_game));
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))

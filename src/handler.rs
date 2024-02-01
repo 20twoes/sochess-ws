@@ -1,10 +1,15 @@
 use axum::{
-    extract::{ws::WebSocketUpgrade, State},
+    http::StatusCode,
+    extract::{
+        ws::WebSocketUpgrade,
+        Path,
+        State,
+    },
     response::Response,
     Json,
 };
 use futures::StreamExt;
-use nanoid::nanoid;
+use mongodb::bson::doc;
 use tracing::error;
 
 use crate::game::Game;
@@ -21,25 +26,48 @@ pub async fn get_games(State(state): State<SharedState>) -> Json<Vec<Game>> {
     match cursor {
         Ok(mut cursor) => {
             let mut games = Vec::new();
-            while let Some(Ok(game)) = cursor.next().await {
-                games.push(game);
+            while let Some(result) = cursor.next().await {
+                match result {
+                    Ok(game) => games.push(game),
+                    Err(err) => error!("{:?}", err),
+                }
             }
             Json(games)
         },
         Err(err) => {
             error!("{:?}", err);
-            Json(vec![])
+            Json(Vec::new())
         },
     }
 }
 
-pub async fn create_game(State(state): State<SharedState>) -> Json<Game> {
-    let game = Game { pid: nanoid!() };
+pub async fn get_game(Path(id): Path<String>, State(state): State<SharedState>) -> Result<Json<Game>, StatusCode> {
+    let games_coll = state.db.collection::<Game>("games");
+    let filter = doc! { "pid": id };
+    let result = games_coll.find_one(filter, None).await;
+    match result {
+        Ok(option) => {
+            match option {
+                Some(game) => Ok(Json(game)),
+                None => Err(StatusCode::NOT_FOUND),
+            }
+        },
+        Err(err) => {
+            error!("{:?}", err);
+            Err(StatusCode::NOT_FOUND)
+        },
+    }
+}
+
+pub async fn create_game(State(state): State<SharedState>) -> Result<Json<Game>, StatusCode> {
+    let game = Game::new();
     let games_coll = state.db.collection::<Game>("games");
     let result = games_coll.insert_one(&game, None).await;
     match result {
-        Ok(_) => (),
-        Err(err) => error!("{:?}", err),
+        Ok(_) => Ok(Json(game)),
+        Err(err) => {
+            error!("{:?}", err);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        },
     }
-    Json(game)
 }
