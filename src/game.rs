@@ -29,6 +29,16 @@ impl Game {
             moves: vec![Default::default()],
         }
     }
+
+    pub fn fen(&self) -> Option<String> {
+        Some(self.moves.last()?.fen.clone())
+    }
+
+    pub fn add_move(&mut self, fen: String) {
+        let mut _move: Move = Default::default();
+        _move.fen = fen;
+        self.moves.push(_move)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -54,6 +64,21 @@ impl Default for Move {
             fen: String::from(INITIAL_FEN),
             ply: 0,
             ts: Utc::now(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GameWithoutMoves {
+    pub pid: String,
+    pub fen: String,
+}
+
+impl GameWithoutMoves {
+    pub fn from_game(game: Game) -> Self {
+        Self {
+            pid: game.pid,
+            fen: game.moves.last().unwrap().fen.clone(),
         }
     }
 }

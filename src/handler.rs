@@ -12,7 +12,7 @@ use futures::StreamExt;
 use mongodb::bson::doc;
 use tracing::error;
 
-use crate::game::Game;
+use crate::game::{Game, GameWithoutMoves};
 use crate::websocket;
 use crate::state::SharedState;
 
@@ -20,7 +20,12 @@ pub async fn serve_websocket(ws: WebSocketUpgrade, State(state): State<SharedSta
     ws.on_upgrade(|socket| websocket::websocket_service(socket, state))
 }
 
-pub async fn get_games(State(state): State<SharedState>) -> Json<Vec<Game>> {
+pub async fn handle_websocket_play_game(Path(id): Path<String>, ws: WebSocketUpgrade, State(state): State<SharedState>) -> Response {
+    ws.on_upgrade(|socket| websocket::serve_play_game(socket, id, state))
+}
+
+pub async fn get_games(State(state): State<SharedState>) -> Json<Vec<GameWithoutMoves>> {
+    tracing::info!("get_games");
     let games_coll = state.db.collection::<Game>("games");
     let cursor = games_coll.find(None, None).await;
     match cursor {
@@ -28,7 +33,10 @@ pub async fn get_games(State(state): State<SharedState>) -> Json<Vec<Game>> {
             let mut games = Vec::new();
             while let Some(result) = cursor.next().await {
                 match result {
-                    Ok(game) => games.push(game),
+                    Ok(game) => {
+                        let g = GameWithoutMoves::from_game(game);
+                        games.push(g);
+                    },
                     Err(err) => error!("{:?}", err),
                 }
             }

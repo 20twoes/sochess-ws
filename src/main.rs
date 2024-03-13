@@ -5,6 +5,7 @@ mod websocket;
 
 use axum::{
     Router,
+    http::Method,
     routing::{get, post},
 };
 use mongodb::{Client, options::ClientOptions};
@@ -12,13 +13,19 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::sync::broadcast;
-use tower_http::trace::TraceLayer;
+use tower::ServiceBuilder;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::state::AppState;
 
 const SOCKET_ADDRESS: &'static str = "0.0.0.0:3000";
 const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq";
+
+const CORS_ORIGINS: [&'static str; 1] = ["https://sovereign-chess-demo.web.app/"];
 
 #[tokio::main]
 async fn main() {
@@ -30,6 +37,17 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    let env = std::env::var("ENV").expect("Need to set `ENV` environment variable");
+
+    let cors_base = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST]);
+
+    let cors = if env == "dev" {
+        cors_base.allow_origin(Any)
+    } else {
+        cors_base.allow_origin(CORS_ORIGINS.map(|i| i.parse().unwrap()))
+    };
 
     // Set up database connection
     let db_connection_str = std::env::var("MONGO_URI").expect("Need to set `MONGO_URI` environment variable");
@@ -53,8 +71,13 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         .route("/ws", get(handler::serve_websocket))
+        .route("/ws/v0/play/:id", get(handler::handle_websocket_play_game))
         .nest("/api", api_routes)
-        .layer(TraceLayer::new_for_http())
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(cors)
+        )
         .with_state(app_state);
 
     let listener = tokio::net::TcpListener::bind(SOCKET_ADDRESS).await.unwrap();
