@@ -1,5 +1,8 @@
 use axum::{
-    http::StatusCode,
+    http::{
+        header::{AUTHORIZATION, HeaderMap},
+        StatusCode,
+    },
     extract::{
         ws::WebSocketUpgrade,
         Path,
@@ -9,7 +12,10 @@ use axum::{
     Json,
 };
 use futures::StreamExt;
-use mongodb::bson::doc;
+use mongodb::{
+    Database,
+    bson::doc,
+};
 use tracing::error;
 
 use crate::game::{Game, GameWithoutMoves};
@@ -25,10 +31,65 @@ pub async fn handle_websocket_play_game(Path(id): Path<String>, ws: WebSocketUpg
     ws.on_upgrade(|socket| websocket::serve_play_game(socket, id, state))
 }
 
-pub async fn get_games(State(state): State<SharedState>) -> Json<Vec<GameWithoutMoves>> {
+async fn get_user(db: Database, username: String) -> Option<User> {
+    let user_coll = db.collection::<User>("users");
+    let filter = doc! { "name": username };
+    let result = user_coll.find_one(filter, None).await;
+    return match result {
+        Ok(option) => {
+            println!("query result: {:?}", option);
+            option
+        },
+        Err(err) => {
+            error!("{:?}", err);
+            None
+        },
+    };
+}
+
+fn get_auth_token(headers: HeaderMap) -> Option<String> {
+     return match headers.get(AUTHORIZATION) {
+        Some(token) => {
+            println!("get_auth_token: {:?}", token);
+            let value = token.to_str().unwrap();
+            let mut parts = value.split(' ');
+            let _auth_type = parts.next();
+            Some(parts.next().unwrap().to_string())
+        },
+        None => {
+            println!("get_auth_token: none found");
+            None
+        },
+    };
+}
+
+pub async fn get_games(headers: HeaderMap, State(state): State<SharedState>) -> Json<Vec<GameWithoutMoves>> {
     tracing::info!("get_games");
+
+    // Check user info was sent in headers
+    let username = match get_auth_token(headers) {
+        Some(token) => {
+            println!("username: {:?}", token);
+            token
+        },
+        None => {
+            println!("no username found");
+            return Json(Vec::new());
+        },
+    };
+
+    // Check if username is valid
+    let user = match get_user(state.db.clone(), username.clone()).await {
+        Some(u) => u,
+        None => {
+            error!("User not found: {}", username);
+            return Json(Vec::new());
+        },
+    };
+
     let games_coll = state.db.collection::<Game>("games");
-    let cursor = games_coll.find(None, None).await;
+    let filter = doc! { "player1": user.name };
+    let cursor = games_coll.find(filter, None).await;
     match cursor {
         Ok(mut cursor) => {
             let mut games = Vec::new();

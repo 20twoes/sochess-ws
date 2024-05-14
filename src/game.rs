@@ -18,6 +18,10 @@ pub struct Game {
     pub updated: DateTime<Utc>,
 
     pub moves: Vec<Move>,
+
+    pub player1: Option<String>,
+
+    pub player2: Option<String>,
 }
 
 impl Game {
@@ -27,6 +31,8 @@ impl Game {
             created: Utc::now(),
             updated: Utc::now(),
             moves: vec![Default::default()],
+            player1: None,
+            player2: None,
         }
     }
 
