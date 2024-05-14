@@ -7,6 +7,16 @@ use std::default::Default;
 const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq";
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum GameState {
+    Created,
+    Accepted,
+    FirstMove,
+    P2Decided,
+    InProgress,
+    Ended,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Game {
     // Public ID, to be used in URL
     pub pid: String,
@@ -22,6 +32,8 @@ pub struct Game {
     pub player1: Option<String>,
 
     pub player2: Option<String>,
+
+    pub state: GameState,
 }
 
 impl Game {
@@ -33,6 +45,7 @@ impl Game {
             moves: vec![Default::default()],
             player1: None,
             player2: None,
+            state: GameState::Created,
         }
     }
 

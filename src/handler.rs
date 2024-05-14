@@ -112,6 +112,7 @@ pub async fn get_games(headers: HeaderMap, State(state): State<SharedState>) -> 
 }
 
 pub async fn get_game(Path(id): Path<String>, State(state): State<SharedState>) -> Result<Json<Game>, StatusCode> {
+    tracing::info!("get_game");
     let games_coll = state.db.collection::<Game>("games");
     let filter = doc! { "pid": id };
     let result = games_coll.find_one(filter, None).await;
@@ -129,8 +130,32 @@ pub async fn get_game(Path(id): Path<String>, State(state): State<SharedState>) 
     }
 }
 
-pub async fn create_game(State(state): State<SharedState>) -> Result<Json<Game>, StatusCode> {
-    let game = Game::new();
+pub async fn create_game(headers: HeaderMap, State(state): State<SharedState>) -> Result<Json<Game>, StatusCode> {
+    tracing::info!("create_game");
+
+    // Check user info was sent in headers
+    let username = match get_auth_token(headers) {
+        Some(token) => {
+            println!("username: {:?}", token);
+            token
+        },
+        None => {
+            println!("no username found");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        },
+    };
+
+    // Check if username is valid
+    let user = match get_user(state.db.clone(), username.clone()).await {
+        Some(u) => u,
+        None => {
+            error!("User not found: {}", username);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        },
+    };
+
+    let mut game = Game::new();
+    game.player1 = Some(user.name);
     let games_coll = state.db.collection::<Game>("games");
     let result = games_coll.insert_one(&game, None).await;
     match result {
