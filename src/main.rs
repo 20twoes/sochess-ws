@@ -1,11 +1,12 @@
 mod game;
 mod handler;
 mod state;
+mod user;
 mod websocket;
 
 use axum::{
     Router,
-    http::Method,
+    http::{Method, header::{CONTENT_TYPE}},
     routing::{get, post},
 };
 use mongodb::{Client, options::ClientOptions};
@@ -25,7 +26,7 @@ use crate::state::AppState;
 const SOCKET_ADDRESS: &'static str = "0.0.0.0:3000";
 const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq";
 
-const CORS_ORIGINS: [&'static str; 1] = ["https://sovereign-chess-demo.web.app/"];
+const CORS_ORIGINS: [&'static str; 1] = ["https://sovereign-chess-demo.web.app"];
 
 #[tokio::main]
 async fn main() {
@@ -41,6 +42,7 @@ async fn main() {
     let env = std::env::var("ENV").expect("Need to set `ENV` environment variable");
 
     let cors_base = CorsLayer::new()
+        .allow_headers([CONTENT_TYPE])
         .allow_methods([Method::GET, Method::POST]);
 
     let cors = if env == "dev" {
@@ -66,7 +68,8 @@ async fn main() {
     let api_routes = Router::new()
         .route("/games", get(handler::get_games))
         .route("/games", post(handler::create_game))
-        .route("/games/:id", get(handler::get_game));
+        .route("/games/:id", get(handler::get_game))
+        .route("/users", post(handler::create_user));
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))

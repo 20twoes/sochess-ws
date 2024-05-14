@@ -82,7 +82,8 @@ COPY --from=build /bin/server /bin/
 # Expose the port that the application listens on.
 EXPOSE 3000
 
-ENV MONGO_URI="mongodb://host.docker.internal:27017/?directConnection=true"
+ENV ENV="prod"
+ENV MONGO_URI="mongodb+srv://<user>:<password>@<host>/?retryWrites=true&w=majority&appName=Sochess0"
 ENV MONGO_DB="sochess"
 
 # What the container should run when it is started.

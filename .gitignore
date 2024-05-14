@@ -176,3 +176,6 @@ dist
 
 # Rust files
 target/
+
+# Deployment
+sochess-image.tar

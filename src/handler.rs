@@ -15,6 +15,7 @@ use tracing::error;
 use crate::game::{Game, GameWithoutMoves};
 use crate::websocket;
 use crate::state::SharedState;
+use crate::user::User;
 
 pub async fn serve_websocket(ws: WebSocketUpgrade, State(state): State<SharedState>) -> Response {
     ws.on_upgrade(|socket| websocket::websocket_service(socket, state))
@@ -73,6 +74,19 @@ pub async fn create_game(State(state): State<SharedState>) -> Result<Json<Game>,
     let result = games_coll.insert_one(&game, None).await;
     match result {
         Ok(_) => Ok(Json(game)),
+        Err(err) => {
+            error!("{:?}", err);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        },
+    }
+}
+
+pub async fn create_user(State(state): State<SharedState>) -> Result<Json<User>, StatusCode> {
+    let user = User::new();
+    let user_coll = state.db.collection::<User>("users");
+    let result = user_coll.insert_one(&user, None).await;
+    match result {
+        Ok(_) => Ok(Json(user)),
         Err(err) => {
             error!("{:?}", err);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
