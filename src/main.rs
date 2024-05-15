@@ -6,7 +6,10 @@ mod websocket;
 
 use axum::{
     Router,
-    http::{Method, header::{CONTENT_TYPE}},
+    http::{
+        Method,
+        header::{AUTHORIZATION, CONTENT_TYPE},
+    },
     routing::{get, post},
 };
 use mongodb::{Client, options::ClientOptions};
@@ -42,7 +45,7 @@ async fn main() {
     let env = std::env::var("ENV").expect("Need to set `ENV` environment variable");
 
     let cors_base = CorsLayer::new()
-        .allow_headers([CONTENT_TYPE])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE])
         .allow_methods([Method::GET, Method::POST]);
 
     let cors = if env == "dev" {
