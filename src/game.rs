@@ -91,6 +91,7 @@ impl Default for Move {
 pub struct GameWithoutMoves {
     pub pid: String,
     pub fen: String,
+    pub state: GameState,
 }
 
 impl GameWithoutMoves {
@@ -98,6 +99,7 @@ impl GameWithoutMoves {
         Self {
             pid: game.pid,
             fen: game.moves.last().unwrap().fen.clone(),
+            state: game.state,
         }
     }
 }
