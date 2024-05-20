@@ -76,7 +76,6 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
-        .route("/ws", get(handler::serve_websocket))
         .route("/ws/v0/play/:id", get(handler::handle_websocket_play_game))
         .nest("/api", api_routes)
         .layer(

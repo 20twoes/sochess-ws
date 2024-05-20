@@ -23,10 +23,6 @@ use crate::websocket;
 use crate::state::SharedState;
 use crate::user::User;
 
-pub async fn serve_websocket(ws: WebSocketUpgrade, State(state): State<SharedState>) -> Response {
-    ws.on_upgrade(|socket| websocket::websocket_service(socket, state))
-}
-
 pub async fn handle_websocket_play_game(Path(id): Path<String>, ws: WebSocketUpgrade, State(state): State<SharedState>) -> Response {
     ws.on_upgrade(|socket| websocket::serve_play_game(socket, id, state))
 }
