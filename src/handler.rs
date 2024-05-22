@@ -12,12 +12,10 @@ use axum::{
     Json,
 };
 use futures::StreamExt;
-use mongodb::{
-    Database,
-    bson::doc,
-};
+use mongodb::bson::doc;
 use tracing::error;
 
+use crate::db;
 use crate::game::{Game, GameWithoutMoves};
 use crate::websocket;
 use crate::state::SharedState;
@@ -25,22 +23,6 @@ use crate::user::User;
 
 pub async fn handle_websocket_play_game(Path(id): Path<String>, ws: WebSocketUpgrade, State(state): State<SharedState>) -> Response {
     ws.on_upgrade(|socket| websocket::serve_play_game(socket, id, state))
-}
-
-async fn get_user(db: Database, username: String) -> Option<User> {
-    let user_coll = db.collection::<User>("users");
-    let filter = doc! { "name": username };
-    let result = user_coll.find_one(filter, None).await;
-    return match result {
-        Ok(option) => {
-            println!("query result: {:?}", option);
-            option
-        },
-        Err(err) => {
-            error!("{:?}", err);
-            None
-        },
-    };
 }
 
 fn get_auth_token(headers: HeaderMap) -> Option<String> {
@@ -75,7 +57,7 @@ pub async fn get_games(headers: HeaderMap, State(state): State<SharedState>) -> 
     };
 
     // Check if username is valid
-    let user = match get_user(state.db.clone(), username.clone()).await {
+    let user = match db::get_user(&state.db, username.as_str()).await {
         Some(u) => u,
         None => {
             error!("User not found: {}", username);
@@ -142,7 +124,7 @@ pub async fn create_game(headers: HeaderMap, State(state): State<SharedState>) -
     };
 
     // Check if username is valid
-    let user = match get_user(state.db.clone(), username.clone()).await {
+    let user = match db::get_user(&state.db, username.as_str()).await {
         Some(u) => u,
         None => {
             error!("User not found: {}", username);

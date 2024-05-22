@@ -6,7 +6,7 @@ use std::default::Default;
 
 const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum GameState {
     Created,
     Accepted,
@@ -16,7 +16,7 @@ pub enum GameState {
     Ended,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Game {
     // Public ID, to be used in URL
     pub pid: String,
@@ -54,13 +54,19 @@ impl Game {
     }
 
     pub fn add_move(&mut self, fen: String) {
-        let mut _move: Move = Default::default();
-        _move.fen = fen;
+        let _move: Move = Move {
+            fen: fen,
+            ..Default::default()
+        };
         self.moves.push(_move)
+    }
+
+    pub fn set_player_joined(&mut self) {
+        self.state = GameState::Accepted;
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Move {
     // Standard Algebraic Notation - notates the piece moved
     pub san: String,

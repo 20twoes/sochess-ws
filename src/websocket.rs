@@ -1,10 +1,9 @@
 use axum::extract::ws::{Message, WebSocket};
 use futures::{sink::SinkExt, stream::StreamExt};
-use mongodb::bson::doc;
-use tracing::error;
 
-use crate::game::Game;
+use crate::db;
 use crate::state::SharedState;
+use crate::websocket_message::WebsocketMessage;
 
 pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState) {
     let span = tracing::info_span!("handle_socket");
@@ -13,18 +12,9 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState) 
 
     let (mut sender, mut receiver) = socket.split();
 
-    let games_coll = state.db.collection::<Game>("games");
-    let filter = doc! { "pid": id };
-    let result = games_coll.find_one(filter, None).await;
-    let game_option: Option<Game> = match result {
-        Ok(option) => option,
-        Err(err) => {
-            error!("{:?}", err);
-            None
-        },
-    };
+    let game_option = db::get_game(&state.db, id.as_str()).await;
 
-    let Some(mut game) = game_option else {
+    let Some(game) = game_option else {
         // TODO: Send an error message and close connection
         return;
     };
@@ -41,12 +31,28 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState) 
     // Wait for messages and broadcast them to all subscribers
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(Message::Text(msg))) = receiver.next().await {
-            // Update game state
-            game.add_move(msg.clone());
-            save_game_move(&game, cloned_state.clone()).await;
             tracing::info!("received msg={}", msg);
 
-            let _ = tx.send(msg);
+            // Determine message type
+            // Process message
+            // Broadcast update to all clients
+            match WebsocketMessage::new(cloned_state.db.clone(), game.clone(), msg) {
+                Ok(mut message) => {
+                    if let Ok(response) = message.process().await {
+                        let _ = tx.send(response);
+                    } else {
+                        tracing::error!("Error processing message");
+                    }
+                },
+                Err(err) => tracing::error!("{:?}", err),
+            }
+
+            // Update game state
+            //game.add_move(msg.clone());
+            //db::save_game_move(&cloned_state.db, &game).await;
+            //tracing::info!("received msg={}", msg);
+
+            //let _ = tx.send(msg);
         }
     });
 
@@ -68,22 +74,4 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState) 
     };
 
     tracing::info!("connection closed");
-}
-
-async fn save_game_move(game: &Game, state: SharedState) {
-    // TODO: Make this an atomic operation
-    let games_coll = state.db.collection::<Game>("games");
-    let filter = doc! { "pid": game.pid.clone() };
-
-    let latest_move = game.moves.last().unwrap();
-    let update = doc! {
-        "$push": {
-            "moves": bson::to_bson(latest_move).unwrap(),
-        },
-    };
-    let _ = games_coll.update_one(
-        filter,
-        update,
-        None
-    ).await;
 }
