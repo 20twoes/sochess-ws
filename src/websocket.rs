@@ -3,9 +3,10 @@ use futures::{sink::SinkExt, stream::StreamExt};
 
 use crate::db;
 use crate::state::SharedState;
+use crate::user::User;
 use crate::websocket_message::WebsocketMessage;
 
-pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState) {
+pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, user: User) {
     let span = tracing::info_span!("handle_socket");
     let _enter = span.enter();
     tracing::info!("connection opened");
@@ -21,6 +22,7 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState) 
 
     // Send a response as soon as connection is opened
     if sender.send(Message::Text(serde_json::to_string(&game).unwrap())).await.is_err() {
+    //if sender.send(Message::Text("1".to_string())).await.is_err() {
         // client disconnected
         return;
     }
@@ -36,7 +38,7 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState) 
             // Determine message type
             // Process message
             // Broadcast update to all clients
-            match WebsocketMessage::new(cloned_state.db.clone(), game.clone(), msg) {
+            match WebsocketMessage::new(cloned_state.db.clone(), game.clone(), user.clone(), msg) {
                 Ok(mut message) => {
                     if let Ok(response) = message.process().await {
                         let _ = tx.send(response);

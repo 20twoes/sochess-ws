@@ -43,7 +43,7 @@ pub async fn get_user(db: &Database, username: &str) -> Option<User> {
     let result = user_coll.find_one(filter, None).await;
     return match result {
         Ok(option) => {
-            println!("query result: {:?}", option);
+            //println!("query result: {:?}", option);
             option
         },
         Err(err) => {

@@ -6,13 +6,18 @@ use axum::{
     extract::{
         ws::WebSocketUpgrade,
         Path,
+        Query,
         State,
     },
     response::Response,
     Json,
 };
 use futures::StreamExt;
-use mongodb::bson::doc;
+use mongodb::{
+    Database,
+    bson::doc,
+};
+use std::collections::HashMap;
 use tracing::error;
 
 use crate::db;
@@ -21,14 +26,51 @@ use crate::websocket;
 use crate::state::SharedState;
 use crate::user::User;
 
-pub async fn handle_websocket_play_game(Path(id): Path<String>, ws: WebSocketUpgrade, State(state): State<SharedState>) -> Response {
-    ws.on_upgrade(|socket| websocket::serve_play_game(socket, id, state))
+pub async fn handle_websocket_play_game(
+    Path(id): Path<String>,
+    Query(params): Query<HashMap<String, String>>,
+    ws: WebSocketUpgrade,
+    State(state): State<SharedState>,
+) -> Result<Response, StatusCode> {
+    // TODO: Replace this hack to get the user info for the websocket connection.
+    // This is very easy to hack.
+    let username = &params["user"];
+    let user = match db::get_user(&state.db, username.as_str()).await {
+        Some(u) => u,
+        None => {
+            return Err(StatusCode::UNAUTHORIZED);
+        },
+    };
+    Ok(ws.on_upgrade(|socket| websocket::serve_play_game(socket, id, state, user)))
+}
+
+async fn extract_user(headers: HeaderMap, database: &Database) -> Result<User, &'static str> {
+    // Check user info was sent in headers
+    let username = match get_auth_token(headers) {
+        Some(token) => {
+            println!("username: {:?}", token);
+            token
+        },
+        None => {
+            return Err("No username found");
+        },
+    };
+
+    // Check if username is valid
+    let user = match db::get_user(&database, username.as_str()).await {
+        Some(u) => u,
+        None => {
+            return Err("No username found");
+        },
+    };
+
+    Ok(user)
 }
 
 fn get_auth_token(headers: HeaderMap) -> Option<String> {
      return match headers.get(AUTHORIZATION) {
         Some(token) => {
-            println!("get_auth_token: {:?}", token);
+            //println!("get_auth_token: {:?}", token);
             let value = token.to_str().unwrap();
             let mut parts = value.split(' ');
             let _auth_type = parts.next();
@@ -41,27 +83,13 @@ fn get_auth_token(headers: HeaderMap) -> Option<String> {
     };
 }
 
-pub async fn get_games(headers: HeaderMap, State(state): State<SharedState>) -> Json<Vec<GameWithoutMoves>> {
+pub async fn get_games(headers: HeaderMap, State(state): State<SharedState>) -> Result<Json<Vec<GameWithoutMoves>>, StatusCode> {
     tracing::info!("get_games");
 
-    // Check user info was sent in headers
-    let username = match get_auth_token(headers) {
-        Some(token) => {
-            println!("username: {:?}", token);
-            token
-        },
-        None => {
-            println!("no username found");
-            return Json(Vec::new());
-        },
-    };
-
-    // Check if username is valid
-    let user = match db::get_user(&state.db, username.as_str()).await {
-        Some(u) => u,
-        None => {
-            error!("User not found: {}", username);
-            return Json(Vec::new());
+    let user = match extract_user(headers, &state.db).await {
+        Ok(user) => user,
+        Err(_) => {
+            return Err(StatusCode::UNAUTHORIZED);
         },
     };
 
@@ -80,11 +108,11 @@ pub async fn get_games(headers: HeaderMap, State(state): State<SharedState>) -> 
                     Err(err) => error!("{:?}", err),
                 }
             }
-            Json(games)
+            Ok(Json(games))
         },
         Err(err) => {
             error!("{:?}", err);
-            Json(Vec::new())
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         },
     }
 }
@@ -111,24 +139,10 @@ pub async fn get_game(Path(id): Path<String>, State(state): State<SharedState>) 
 pub async fn create_game(headers: HeaderMap, State(state): State<SharedState>) -> Result<Json<Game>, StatusCode> {
     tracing::info!("create_game");
 
-    // Check user info was sent in headers
-    let username = match get_auth_token(headers) {
-        Some(token) => {
-            println!("username: {:?}", token);
-            token
-        },
-        None => {
-            println!("no username found");
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
-        },
-    };
-
-    // Check if username is valid
-    let user = match db::get_user(&state.db, username.as_str()).await {
-        Some(u) => u,
-        None => {
-            error!("User not found: {}", username);
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    let user = match extract_user(headers, &state.db).await {
+        Ok(user) => user,
+        Err(_) => {
+            return Err(StatusCode::UNAUTHORIZED);
         },
     };
 

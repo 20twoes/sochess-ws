@@ -15,9 +15,7 @@ use axum::{
     routing::{get, post},
 };
 use mongodb::{Client, options::ClientOptions};
-use std::{
-    sync::{Arc, Mutex},
-};
+use std::sync::Arc;
 use tokio::sync::broadcast;
 use tower::ServiceBuilder;
 use tower_http::{
@@ -29,7 +27,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use crate::state::AppState;
 
 const SOCKET_ADDRESS: &'static str = "0.0.0.0:3000";
-const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq";
 
 const CORS_ORIGINS: [&'static str; 1] = ["https://sovereign-chess-demo.web.app"];
 
@@ -66,7 +63,6 @@ async fn main() {
     let (tx, _) = broadcast::channel(100);
     let app_state = Arc::new(AppState {
         db,
-        fen: Mutex::new(INITIAL_FEN.to_string()),
         tx,
     });
 
