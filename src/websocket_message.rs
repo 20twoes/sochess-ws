@@ -34,15 +34,8 @@
 //! ```
 //!
 //! Broadcast Response
-//! ```
-//! {
-//!     "t": "game_update",
-//!     "d": {
-//!         "state": "Accepted",
-//!         "player2": "anon1234"
-//!     }
-//! }
-//! ```
+//!
+//! Send updated Game object
 use mongodb::Database;
 use serde_json::{Error, Value, json};
 
@@ -105,7 +98,7 @@ impl WebsocketMessage {
         // Add player 2 to game
         //let player2 = self.json["player2"].as_str().unwrap().to_string();
         let player2 = self.user.as_ref().unwrap();
-        self.game.set_player_joined(); // TODO: Set player2 here
+        self.game.set_player_joined(player2);
         db::update_player(&self.db, &self.game, &player2.name).await;
 
         let resp = json!({

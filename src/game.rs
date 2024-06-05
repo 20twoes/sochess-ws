@@ -4,6 +4,8 @@ use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 
+use crate::user::User;
+
 const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -61,8 +63,9 @@ impl Game {
         self.moves.push(_move)
     }
 
-    pub fn set_player_joined(&mut self) {
+    pub fn set_player_joined(&mut self, user: &User) {
         self.state = GameState::Accepted;
+        self.player2 = Some(user.name.clone());
     }
 }
 

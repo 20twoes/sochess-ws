@@ -41,7 +41,17 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
             match WebsocketMessage::new(cloned_state.db.clone(), game.clone(), user.clone(), msg) {
                 Ok(mut message) => {
                     if let Ok(response) = message.process().await {
-                        let _ = tx.send(response);
+                        // Let's try sending the latest game object back each time.
+                        // We can optimize later.
+                        //let _ = tx.send(response);
+                        let game_option = db::get_game(&cloned_state.db, id.as_str()).await;
+
+                        if let Some(game) = game_option {
+                            let response = serde_json::to_string(&game).unwrap();
+                            let _ = tx.send(response);
+                        } else {
+                            tracing::error!("Error fetching game after processing message");
+                        }
                     } else {
                         tracing::error!("Error processing message");
                     }
