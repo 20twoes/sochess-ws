@@ -1,3 +1,4 @@
+use chrono::Utc;
 use mongodb::{bson::doc, Database};
 
 use crate::game::Game;
@@ -57,6 +58,7 @@ pub async fn update_player(db: &Database, game: &Game, user_id: &String) {
         let update = doc! {
             "$set": {
                 "player2": user_id,
+                "updated": Utc::now(),
                 "state": bson::to_bson(&game.state).unwrap(),
             },
         };
