@@ -1,30 +1,22 @@
 use axum::{
+    extract::{ws::WebSocketUpgrade, Path, Query, State},
     http::{
-        header::{AUTHORIZATION, HeaderMap},
+        header::{HeaderMap, AUTHORIZATION},
         StatusCode,
-    },
-    extract::{
-        ws::WebSocketUpgrade,
-        Path,
-        Query,
-        State,
     },
     response::Response,
     Json,
 };
 use futures::StreamExt;
-use mongodb::{
-    Database,
-    bson::doc,
-};
+use mongodb::{bson::doc, Database};
 use std::collections::HashMap;
 use tracing::error;
 
 use crate::db;
 use crate::game::{Game, GameWithoutMoves};
-use crate::websocket;
 use crate::state::SharedState;
 use crate::user::User;
+use crate::websocket;
 
 pub async fn handle_websocket_play_game(
     Path(id): Path<String>,
@@ -39,7 +31,7 @@ pub async fn handle_websocket_play_game(
         Some(u) => u,
         None => {
             return Err(StatusCode::UNAUTHORIZED);
-        },
+        }
     };
     Ok(ws.on_upgrade(|socket| websocket::serve_play_game(socket, id, state, user)))
 }
@@ -50,10 +42,10 @@ async fn extract_user(headers: HeaderMap, database: &Database) -> Result<User, &
         Some(token) => {
             println!("username: {:?}", token);
             token
-        },
+        }
         None => {
             return Err("No username found");
-        },
+        }
     };
 
     // Check if username is valid
@@ -61,36 +53,39 @@ async fn extract_user(headers: HeaderMap, database: &Database) -> Result<User, &
         Some(u) => u,
         None => {
             return Err("No username found");
-        },
+        }
     };
 
     Ok(user)
 }
 
 fn get_auth_token(headers: HeaderMap) -> Option<String> {
-     return match headers.get(AUTHORIZATION) {
+    return match headers.get(AUTHORIZATION) {
         Some(token) => {
             //println!("get_auth_token: {:?}", token);
             let value = token.to_str().unwrap();
             let mut parts = value.split(' ');
             let _auth_type = parts.next();
             Some(parts.next().unwrap().to_string())
-        },
+        }
         None => {
             println!("get_auth_token: none found");
             None
-        },
+        }
     };
 }
 
-pub async fn get_games(headers: HeaderMap, State(state): State<SharedState>) -> Result<Json<Vec<GameWithoutMoves>>, StatusCode> {
+pub async fn get_games(
+    headers: HeaderMap,
+    State(state): State<SharedState>,
+) -> Result<Json<Vec<GameWithoutMoves>>, StatusCode> {
     tracing::info!("get_games");
 
     let user = match extract_user(headers, &state.db).await {
         Ok(user) => user,
         Err(_) => {
             return Err(StatusCode::UNAUTHORIZED);
-        },
+        }
     };
 
     let games_coll = state.db.collection::<Game>("games");
@@ -104,46 +99,50 @@ pub async fn get_games(headers: HeaderMap, State(state): State<SharedState>) -> 
                     Ok(game) => {
                         let g = GameWithoutMoves::from_game(game);
                         games.push(g);
-                    },
+                    }
                     Err(err) => error!("{:?}", err),
                 }
             }
             Ok(Json(games))
-        },
+        }
         Err(err) => {
             error!("{:?}", err);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
-        },
+        }
     }
 }
 
-pub async fn get_game(Path(id): Path<String>, State(state): State<SharedState>) -> Result<Json<Game>, StatusCode> {
+pub async fn get_game(
+    Path(id): Path<String>,
+    State(state): State<SharedState>,
+) -> Result<Json<Game>, StatusCode> {
     tracing::info!("get_game");
     let games_coll = state.db.collection::<Game>("games");
     let filter = doc! { "pid": id };
     let result = games_coll.find_one(filter, None).await;
     match result {
-        Ok(option) => {
-            match option {
-                Some(game) => Ok(Json(game)),
-                None => Err(StatusCode::NOT_FOUND),
-            }
+        Ok(option) => match option {
+            Some(game) => Ok(Json(game)),
+            None => Err(StatusCode::NOT_FOUND),
         },
         Err(err) => {
             error!("{:?}", err);
             Err(StatusCode::NOT_FOUND)
-        },
+        }
     }
 }
 
-pub async fn create_game(headers: HeaderMap, State(state): State<SharedState>) -> Result<Json<Game>, StatusCode> {
+pub async fn create_game(
+    headers: HeaderMap,
+    State(state): State<SharedState>,
+) -> Result<Json<Game>, StatusCode> {
     tracing::info!("create_game");
 
     let user = match extract_user(headers, &state.db).await {
         Ok(user) => user,
         Err(_) => {
             return Err(StatusCode::UNAUTHORIZED);
-        },
+        }
     };
 
     let mut game = Game::new();
@@ -155,7 +154,7 @@ pub async fn create_game(headers: HeaderMap, State(state): State<SharedState>) -
         Err(err) => {
             error!("{:?}", err);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
-        },
+        }
     }
 }
 
@@ -168,6 +167,6 @@ pub async fn create_user(State(state): State<SharedState>) -> Result<Json<User>,
         Err(err) => {
             error!("{:?}", err);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
-        },
+        }
     }
 }

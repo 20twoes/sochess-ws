@@ -7,14 +7,14 @@ mod websocket;
 mod websocket_message;
 
 use axum::{
-    Router,
     http::{
-        Method,
         header::{AUTHORIZATION, CONTENT_TYPE},
+        Method,
     },
     routing::{get, post},
+    Router,
 };
-use mongodb::{Client, options::ClientOptions};
+use mongodb::{options::ClientOptions, Client};
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tower::ServiceBuilder;
@@ -54,17 +54,15 @@ async fn main() {
     };
 
     // Set up database connection
-    let db_connection_str = std::env::var("MONGO_URI").expect("Need to set `MONGO_URI` environment variable");
+    let db_connection_str =
+        std::env::var("MONGO_URI").expect("Need to set `MONGO_URI` environment variable");
     let db_name = std::env::var("MONGO_DB").expect("Need to set `MONGO_DB` environment variable");
     let client_options = ClientOptions::parse(db_connection_str).await.unwrap();
     let client = Client::with_options(client_options).unwrap();
     let db = client.database(&db_name);
 
     let (tx, _) = broadcast::channel(100);
-    let app_state = Arc::new(AppState {
-        db,
-        tx,
-    });
+    let app_state = Arc::new(AppState { db, tx });
 
     let api_routes = Router::new()
         .route("/games", get(handler::get_games))
@@ -79,7 +77,7 @@ async fn main() {
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
-                .layer(cors)
+                .layer(cors),
         )
         .with_state(app_state);
 

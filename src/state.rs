@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use mongodb::Database;
+use std::sync::Arc;
 use tokio::sync::broadcast;
 
 pub type SharedState = Arc<AppState>;
@@ -9,4 +9,3 @@ pub struct AppState {
     pub tx: broadcast::Sender<String>,
     pub db: Database,
 }
-

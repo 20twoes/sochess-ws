@@ -21,8 +21,12 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
     };
 
     // Send a response as soon as connection is opened
-    if sender.send(Message::Text(serde_json::to_string(&game).unwrap())).await.is_err() {
-    //if sender.send(Message::Text("1".to_string())).await.is_err() {
+    if sender
+        .send(Message::Text(serde_json::to_string(&game).unwrap()))
+        .await
+        .is_err()
+    {
+        //if sender.send(Message::Text("1".to_string())).await.is_err() {
         // client disconnected
         return;
     }
@@ -55,7 +59,7 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
                     } else {
                         tracing::error!("Error processing message");
                     }
-                },
+                }
                 Err(err) => tracing::error!("{:?}", err),
             }
 

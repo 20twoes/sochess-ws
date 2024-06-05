@@ -1,7 +1,4 @@
-use mongodb::{
-    Database,
-    bson::doc,
-};
+use mongodb::{bson::doc, Database};
 
 use crate::game::Game;
 use crate::user::User;
@@ -15,7 +12,7 @@ pub async fn get_game(db: &Database, game_id: &str) -> Option<Game> {
         Err(err) => {
             tracing::error!("{:?}", err);
             None
-        },
+        }
     };
     return game_option;
 }
@@ -30,11 +27,7 @@ pub async fn save_game_move(db: &Database, game: &Game) {
             "moves": bson::to_bson(latest_move).unwrap(),
         },
     };
-    let _ = games_coll.update_one(
-        filter,
-        update,
-        None
-    ).await;
+    let _ = games_coll.update_one(filter, update, None).await;
 }
 
 pub async fn get_user(db: &Database, username: &str) -> Option<User> {
@@ -45,11 +38,11 @@ pub async fn get_user(db: &Database, username: &str) -> Option<User> {
         Ok(option) => {
             //println!("query result: {:?}", option);
             option
-        },
+        }
         Err(err) => {
             tracing::error!("{:?}", err);
             None
-        },
+        }
     };
 }
 
@@ -67,11 +60,7 @@ pub async fn update_player(db: &Database, game: &Game, user_id: &String) {
                 "state": bson::to_bson(&game.state).unwrap(),
             },
         };
-        let _ = games_coll.update_one(
-            filter,
-            update,
-            None
-        ).await;
+        let _ = games_coll.update_one(filter, update, None).await;
     } else {
         tracing::error!("User does not exist: {}", user_id);
     }

@@ -37,7 +37,7 @@
 //!
 //! Send updated Game object
 use mongodb::Database;
-use serde_json::{Error, Value, json};
+use serde_json::{json, Error, Value};
 
 use crate::db;
 use crate::game::Game;
@@ -62,14 +62,12 @@ impl WebsocketMessage {
         // Get message type and return corresponding object
         let json = result.unwrap();
 
-        Ok(
-            Self {
-                db: db_,
-                game: game,
-                json: json,
-                user: Some(user),
-            }
-        )
+        Ok(Self {
+            db: db_,
+            game: game,
+            json: json,
+            user: Some(user),
+        })
     }
 
     pub async fn process(&mut self) -> Result<String, &'static str> {
@@ -111,7 +109,6 @@ impl WebsocketMessage {
         resp.to_string()
     }
 }
-
 
 //struct MakeMove {
 //    player: String,
