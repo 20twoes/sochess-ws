@@ -89,7 +89,9 @@ pub async fn get_games(
     };
 
     let games_coll = state.db.collection::<Game>("games");
-    let filter = doc! { "player1": user.name };
+    let filter = doc! {
+        "$or": [{"player1": user.name.clone()}, {"player2": user.name}],
+    };
     let cursor = games_coll.find(filter, None).await;
     match cursor {
         Ok(mut cursor) => {

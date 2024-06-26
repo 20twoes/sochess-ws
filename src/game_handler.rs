@@ -54,9 +54,7 @@ impl GameHandler {
         match json["t"].as_str() {
             Some("join") => {
                 if let Some(s) = self.state.take() {
-                    self.state = Some(
-                        s.join_game(self).await.unwrap(),
-                    );
+                    self.state = Some(s.join_game(self).await.unwrap());
                 }
                 Ok(())
             }
@@ -85,7 +83,11 @@ trait HandlerState {
     }
 
     #[allow(unused_variables)]
-    async fn add_move(&self, handler: &mut GameHandler, new_move: String) -> Result<Box<FirstMove>, GameHandlerError> {
+    async fn add_move(
+        &self,
+        handler: &mut GameHandler,
+        new_move: String,
+    ) -> Result<Box<FirstMove>, GameHandlerError> {
         Err(GameHandlerError {
             message: "Forbidden game action".to_string(),
         })
@@ -110,7 +112,11 @@ impl HandlerState for Created {
 
 #[async_trait]
 impl HandlerState for Accepted {
-    async fn add_move(&self, handler: &mut GameHandler, new_move: String) -> Result<Box<FirstMove>, GameHandlerError> {
+    async fn add_move(
+        &self,
+        handler: &mut GameHandler,
+        new_move: String,
+    ) -> Result<Box<FirstMove>, GameHandlerError> {
         println!("running join_game");
         handler.game.add_move(new_move.clone());
         db::save_game_move(&handler.db, &handler.game).await;
