@@ -2,9 +2,9 @@ use axum::extract::ws::{Message, WebSocket};
 use futures::{sink::SinkExt, stream::StreamExt};
 
 use crate::db;
+use crate::game_handler::GameHandler;
 use crate::state::SharedState;
 use crate::user::User;
-use crate::websocket_message::WebsocketMessage;
 
 pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, user: User) {
     let span = tracing::info_span!("handle_socket");
@@ -26,7 +26,6 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
         .await
         .is_err()
     {
-        //if sender.send(Message::Text("1".to_string())).await.is_err() {
         // client disconnected
         return;
     }
@@ -39,28 +38,31 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
         while let Some(Ok(Message::Text(msg))) = receiver.next().await {
             tracing::info!("received msg={}", msg);
 
+            // We need the latest game state
+            let game_option = db::get_game(&cloned_state.db, id.as_str()).await;
+            let Some(game) = game_option else {
+                return;
+            };
+
             // Determine message type
             // Process message
             // Broadcast update to all clients
-            match WebsocketMessage::new(cloned_state.db.clone(), game.clone(), user.clone(), msg) {
-                Ok(mut message) => {
-                    if let Ok(response) = message.process().await {
-                        // Let's try sending the latest game object back each time.
-                        // We can optimize later.
-                        //let _ = tx.send(response);
-                        let game_option = db::get_game(&cloned_state.db, id.as_str()).await;
-
-                        if let Some(game) = game_option {
-                            let response = serde_json::to_string(&game).unwrap();
-                            let _ = tx.send(response);
-                        } else {
-                            tracing::error!("Error fetching game after processing message");
-                        }
+            let mut handler = GameHandler::new(game.clone(), user.clone(), cloned_state.db.clone());
+            let json = handler.read(&msg).unwrap();
+            //let result = handler.process(json).await;
+            match handler.process(json).await {
+                Ok(_) => {
+                    // Let's try sending the latest game object back each time.
+                    // We can optimize later.
+                    let game_option = db::get_game(&cloned_state.db, id.as_str()).await;
+                    if let Some(game) = game_option {
+                        let response = serde_json::to_string(&game).unwrap();
+                        let _ = tx.send(response);
                     } else {
-                        tracing::error!("Error processing message");
+                        tracing::error!("Error fetching game after processing message");
                     }
                 }
-                Err(err) => tracing::error!("{:?}", err),
+                Err(err) => tracing::error!(err),
             }
 
             // Update game state
