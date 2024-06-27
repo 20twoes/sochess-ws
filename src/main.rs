@@ -1,6 +1,7 @@
 mod db;
 mod game;
 mod game_handler;
+mod game_rules;
 mod handler;
 mod state;
 mod user;

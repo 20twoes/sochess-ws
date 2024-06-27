@@ -4,7 +4,8 @@ use std::error::Error;
 use std::fmt;
 
 use crate::db;
-use crate::game::{Game, GameState};
+use crate::game::{Game, GameState, Move};
+use crate::game_rules;
 use crate::user::User;
 
 #[derive(Debug)]
@@ -60,8 +61,12 @@ impl GameHandler {
             }
             Some("move") => {
                 if let Some(s) = self.state.take() {
-                    let new_move = json["d"].as_str().unwrap();
-                    self.state = Some(s.add_move(self, new_move.to_string()).await.unwrap());
+                    let new_move = Move {
+                        fen: json["d"]["fen"].as_str().unwrap().to_string(),
+                        san: json["d"]["san"].as_str().unwrap().to_string(),
+                        ..Default::default()
+                    };
+                    self.state = Some(s.add_move(self, new_move).await.unwrap());
                 }
                 Ok(())
             }
@@ -86,7 +91,7 @@ trait HandlerState {
     async fn add_move(
         &self,
         handler: &mut GameHandler,
-        new_move: String,
+        new_move: Move,
     ) -> Result<Box<FirstMove>, GameHandlerError> {
         Err(GameHandlerError {
             message: "Forbidden game action".to_string(),
@@ -115,18 +120,30 @@ impl HandlerState for Accepted {
     async fn add_move(
         &self,
         handler: &mut GameHandler,
-        new_move: String,
+        new_move: Move,
     ) -> Result<Box<FirstMove>, GameHandlerError> {
         let game = &mut handler.game;
         let user = &handler.user;
-        if game.is_users_turn(user) {
-            game.add_move(new_move.clone());
-            db::save_game_move(&handler.db, &handler.game).await;
-            Ok(Box::new(FirstMove {}))
-        } else {
+        let current_fen = game.moves.last().unwrap().fen.clone();
+
+        if !game.is_users_turn(user) {
             Err(GameHandlerError {
                 message: "Not player's turn".to_string(),
             })
+        } else if !game_rules::is_white_move(new_move.clone()) {
+            Err(GameHandlerError {
+                message: "Must move white piece".to_string(),
+            })
+        } else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
+            Err(GameHandlerError {
+                message: "Illegal move".to_string(),
+            })
+        } else {
+            game.add_move(new_move.fen.clone());
+            game.state = GameState::FirstMove;
+            db::save_game_move(&handler.db, &handler.game).await;
+
+            Ok(Box::new(FirstMove {}))
         }
     }
 }
