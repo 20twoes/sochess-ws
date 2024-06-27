@@ -51,9 +51,9 @@ impl Game {
         }
     }
 
-    pub fn fen(&self) -> Option<String> {
-        Some(self.moves.last()?.fen.clone())
-    }
+    //pub fn fen(&self) -> Option<String> {
+    //    Some(self.moves.last()?.fen.clone())
+    //}
 
     pub fn add_move(&mut self, fen: String) {
         let last_move = self.moves.last().unwrap();
@@ -71,6 +71,18 @@ impl Game {
     pub fn set_player_joined(&mut self, user: &User) {
         self.state = GameState::Accepted;
         self.player2 = Some(user.name.clone());
+    }
+
+    pub fn is_users_turn(&self, user: &User) -> bool {
+        let last_move = self.moves.last().unwrap();
+        match last_move.active_player {
+            1 => user.name == self.player1.clone().unwrap(),
+            2 => user.name == self.player2.clone().unwrap(),
+            _ => {
+                println!("Unrecognized active_player");
+                false
+            }
+        }
     }
 }
 

@@ -117,10 +117,17 @@ impl HandlerState for Accepted {
         handler: &mut GameHandler,
         new_move: String,
     ) -> Result<Box<FirstMove>, GameHandlerError> {
-        println!("running join_game");
-        handler.game.add_move(new_move.clone());
-        db::save_game_move(&handler.db, &handler.game).await;
-        Ok(Box::new(FirstMove {}))
+        let game = &mut handler.game;
+        let user = &handler.user;
+        if game.is_users_turn(user) {
+            game.add_move(new_move.clone());
+            db::save_game_move(&handler.db, &handler.game).await;
+            Ok(Box::new(FirstMove {}))
+        } else {
+            Err(GameHandlerError {
+                message: "Not player's turn".to_string(),
+            })
+        }
     }
 }
 
