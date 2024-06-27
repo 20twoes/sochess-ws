@@ -56,8 +56,13 @@ impl Game {
     }
 
     pub fn add_move(&mut self, fen: String) {
+        let last_move = self.moves.last().unwrap();
+        let active_player = if last_move.active_player == 1 { 2 } else { 1 };
+        let ply = last_move.ply + 1;
         let _move: Move = Move {
             fen: fen,
+            active_player: active_player,
+            ply: ply,
             ..Default::default()
         };
         self.moves.push(_move)
@@ -77,6 +82,10 @@ pub struct Move {
     // Forsyth-Edwards Notation - notates the resulting board position
     pub fen: String,
 
+    // The player whose turn to move it is
+    // `1` means Player1 is to move; `2` means Player2 is to move
+    pub active_player: u8,
+
     // Half-turn, equal to one move by a player
     pub ply: u32,
 
@@ -90,6 +99,7 @@ impl Default for Move {
         Self {
             san: String::from(""),
             fen: String::from(INITIAL_FEN),
+            active_player: 1,
             ply: 0,
             ts: Utc::now(),
         }
