@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use mongodb::Database;
+use serde::Serialize;
 use std::error::Error;
 use std::fmt;
 
@@ -8,12 +9,13 @@ use crate::game::{Game, GameState, Move};
 use crate::game_rules;
 use crate::user::User;
 
-#[derive(Debug)]
-struct GameHandlerError {
+#[derive(Debug, Serialize)]
+pub struct GameHandlerError {
     message: String,
 }
 
 impl Error for GameHandlerError {}
+
 impl fmt::Display for GameHandlerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.message)
@@ -51,26 +53,41 @@ impl GameHandler {
         serde_json::from_str(message)
     }
 
-    pub async fn process(&mut self, json: serde_json::Value) -> Result<(), &'static str> {
+    pub async fn process(&mut self, json: serde_json::Value) -> Result<(), GameHandlerError> {
         match json["t"].as_str() {
             Some("join") => {
                 if let Some(s) = self.state.take() {
-                    self.state = Some(s.join_game(self).await.unwrap());
+                    self.state = Some(s.join_game(self).await.expect("Failed to join game"));
                 }
                 Ok(())
             }
             Some("move") => {
                 if let Some(s) = self.state.take() {
                     let new_move = Move {
-                        fen: json["d"]["fen"].as_str().unwrap().to_string(),
-                        san: json["d"]["san"].as_str().unwrap().to_string(),
+                        fen: json["d"]["fen"]
+                            .as_str()
+                            .expect("Cannot find FEN in data object")
+                            .to_string(),
+                        san: json["d"]["san"]
+                            .as_str()
+                            .expect("Cannot find SAN in data object")
+                            .to_string(),
                         ..Default::default()
                     };
-                    self.state = Some(s.add_move(self, new_move).await.unwrap());
+                    match s.add_move(self, new_move).await {
+                        Ok(new_state) => {
+                            self.state = Some(new_state);
+                        }
+                        Err(err) => {
+                            return Err(err);
+                        }
+                    }
                 }
                 Ok(())
             }
-            _ => Err("Invalid message type"),
+            _ => Err(GameHandlerError {
+                message: "Invalid message type".to_string(),
+            }),
         }
     }
 }
@@ -128,11 +145,11 @@ impl HandlerState for Accepted {
 
         if !game.is_users_turn(user) {
             Err(GameHandlerError {
-                message: "Not player's turn".to_string(),
+                message: "Not your turn".to_string(),
             })
         } else if !game_rules::is_white_move(new_move.clone()) {
             Err(GameHandlerError {
-                message: "Must move white piece".to_string(),
+                message: "Must move a white piece".to_string(),
             })
         } else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
             Err(GameHandlerError {

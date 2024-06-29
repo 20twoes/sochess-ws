@@ -48,7 +48,9 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
             // Process message
             // Broadcast update to all clients
             let mut handler = GameHandler::new(game.clone(), user.clone(), cloned_state.db.clone());
-            let json = handler.read(&msg).unwrap();
+            let json = handler
+                .read(&msg)
+                .expect("Failed to parse websocket message");
             //let result = handler.process(json).await;
             match handler.process(json).await {
                 Ok(_) => {
@@ -62,15 +64,10 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
                         tracing::error!("Error fetching game after processing message");
                     }
                 }
-                Err(err) => tracing::error!(err),
+                Err(err) => {
+                    let _ = tx.send(serde_json::to_string(&err).unwrap());
+                }
             }
-
-            // Update game state
-            //game.add_move(msg.clone());
-            //db::save_game_move(&cloned_state.db, &game).await;
-            //tracing::info!("received msg={}", msg);
-
-            //let _ = tx.send(msg);
         }
     });
 
