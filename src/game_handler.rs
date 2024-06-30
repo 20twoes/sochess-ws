@@ -50,6 +50,12 @@ impl GameHandler {
                 user: user,
                 db: db_handle,
             },
+            GameState::InProgress => Self {
+                state: Some(Box::new(InProgress {})),
+                game: game,
+                user: user,
+                db: db_handle,
+            },
             _ => todo!(),
         }
     }
@@ -64,6 +70,46 @@ impl GameHandler {
             Some("join") => {
                 if let Some(s) = self.state.take() {
                     self.state = Some(s.join_game(self).await.expect("Failed to join game"));
+                }
+                Ok(())
+            }
+            Some("first_move") => {
+                if let Some(s) = self.state.take() {
+                    let new_move = Move {
+                        fen: json["d"]["fen"]
+                            .as_str()
+                            .expect("Cannot find FEN in data object")
+                            .to_string(),
+                        san: json["d"]["san"]
+                            .as_str()
+                            .expect("Cannot find SAN in data object")
+                            .to_string(),
+                        ..Default::default()
+                    };
+                    match s.add_first_move(self, new_move).await {
+                        Ok(new_state) => {
+                            self.state = Some(new_state);
+                        }
+                        Err(err) => {
+                            return Err(err);
+                        }
+                    }
+                }
+                Ok(())
+            }
+            Some("first_move_choice") => {
+                if let Some(s) = self.state.take() {
+                    let choice = json["d"]
+                        .as_str()
+                        .expect("Cannot find choice for first move");
+                    match s.choose_first_move(self, choice).await {
+                        Ok(new_state) => {
+                            self.state = Some(new_state);
+                        }
+                        Err(err) => {
+                            return Err(err);
+                        }
+                    }
                 }
                 Ok(())
             }
@@ -82,23 +128,8 @@ impl GameHandler {
                     };
                     match s.add_move(self, new_move).await {
                         Ok(new_state) => {
-                            self.state = Some(new_state);
-                        }
-                        Err(err) => {
-                            return Err(err);
-                        }
-                    }
-                }
-                Ok(())
-            }
-            Some("first_move") => {
-                if let Some(s) = self.state.take() {
-                    let choice = json["d"]
-                        .as_str()
-                        .expect("Cannot find choice for first move");
-                    match s.handle_first_move(self, choice).await {
-                        Ok(new_state) => {
-                            self.state = Some(new_state);
+                            // TODO: State won't change until we end the game
+                            //self.state = Some(new_state);
                         }
                         Err(err) => {
                             return Err(err);
@@ -127,7 +158,7 @@ trait HandlerState {
     }
 
     #[allow(unused_variables)]
-    async fn add_move(
+    async fn add_first_move(
         &self,
         handler: &mut GameHandler,
         new_move: Move,
@@ -138,11 +169,22 @@ trait HandlerState {
     }
 
     #[allow(unused_variables)]
-    async fn handle_first_move(
+    async fn choose_first_move(
         &self,
         handler: &mut GameHandler,
         choice: &str,
-    ) -> Result<Box<P2Decided>, GameHandlerError> {
+    ) -> Result<Box<InProgress>, GameHandlerError> {
+        Err(GameHandlerError {
+            message: "Forbidden game action".to_string(),
+        })
+    }
+
+    #[allow(unused_variables)]
+    async fn add_move(
+        &self,
+        handler: &mut GameHandler,
+        new_move: Move,
+    ) -> Result<Box<InProgress>, GameHandlerError> {
         Err(GameHandlerError {
             message: "Forbidden game action".to_string(),
         })
@@ -152,7 +194,7 @@ trait HandlerState {
 struct Created {}
 struct Accepted {}
 struct FirstMove {}
-struct P2Decided {}
+struct InProgress {}
 
 #[async_trait]
 impl HandlerState for Created {
@@ -168,7 +210,7 @@ impl HandlerState for Created {
 
 #[async_trait]
 impl HandlerState for Accepted {
-    async fn add_move(
+    async fn add_first_move(
         &self,
         handler: &mut GameHandler,
         new_move: Move,
@@ -201,11 +243,11 @@ impl HandlerState for Accepted {
 
 #[async_trait]
 impl HandlerState for FirstMove {
-    async fn handle_first_move(
+    async fn choose_first_move(
         &self,
         handler: &mut GameHandler,
         choice: &str,
-    ) -> Result<Box<P2Decided>, GameHandlerError> {
+    ) -> Result<Box<InProgress>, GameHandlerError> {
         let user = &handler.user;
         let game = &mut handler.game;
 
@@ -227,11 +269,41 @@ impl HandlerState for FirstMove {
         };
 
         // Save game move
-        game.state = GameState::P2Decided;
+        game.state = GameState::InProgress;
         db::save_game_move(&handler.db, &handler.game).await;
 
-        Ok(Box::new(P2Decided {}))
+        Ok(Box::new(InProgress {}))
     }
 }
 
-impl HandlerState for P2Decided {}
+#[async_trait]
+impl HandlerState for InProgress {
+    async fn add_move(
+        &self,
+        handler: &mut GameHandler,
+        new_move: Move,
+    ) -> Result<Box<InProgress>, GameHandlerError> {
+        let game = &mut handler.game;
+        let user = &handler.user;
+        let current_fen = game.moves.last().unwrap().fen.clone();
+
+        if !game.is_users_turn(user) {
+            Err(GameHandlerError {
+                message: "Not your turn".to_string(),
+            })
+        } else if !game_rules::is_own_piece(game.last_move(), new_move.clone()) {
+            Err(GameHandlerError {
+                message: "Must move a white piece".to_string(),
+            })
+        } else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
+            Err(GameHandlerError {
+                message: "Illegal move".to_string(),
+            })
+        } else {
+            game.add_move(new_move.fen.clone());
+            db::save_game_move(&handler.db, &handler.game).await;
+
+            Ok(Box::new(InProgress {}))
+        }
+    }
+}

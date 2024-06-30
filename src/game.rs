@@ -13,7 +13,6 @@ pub enum GameState {
     Created,
     Accepted,
     FirstMove,
-    P2Decided,
     InProgress,
     Ended,
 }
@@ -49,6 +48,10 @@ impl Game {
             player2: None,
             state: GameState::Created,
         }
+    }
+
+    pub fn last_move(&mut self) -> Move {
+        self.moves.last().unwrap().clone()
     }
 
     //pub fn fen(&self) -> Option<String> {

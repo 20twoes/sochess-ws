@@ -7,3 +7,7 @@ pub fn is_white_move(new_move: Move) -> bool {
 pub fn is_legal_move(new_move: Move, current_fen: String) -> bool {
     true
 }
+
+pub fn is_own_piece(current_move: Move, new_move: Move) -> bool {
+    true
+}
