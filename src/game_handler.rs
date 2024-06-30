@@ -44,6 +44,12 @@ impl GameHandler {
                 user: user,
                 db: db_handle,
             },
+            GameState::FirstMove => Self {
+                state: Some(Box::new(FirstMove {})),
+                game: game,
+                user: user,
+                db: db_handle,
+            },
             _ => todo!(),
         }
     }
@@ -85,6 +91,22 @@ impl GameHandler {
                 }
                 Ok(())
             }
+            Some("first_move") => {
+                if let Some(s) = self.state.take() {
+                    let choice = json["d"]
+                        .as_str()
+                        .expect("Cannot find choice for first move");
+                    match s.handle_first_move(self, choice).await {
+                        Ok(new_state) => {
+                            self.state = Some(new_state);
+                        }
+                        Err(err) => {
+                            return Err(err);
+                        }
+                    }
+                }
+                Ok(())
+            }
             _ => Err(GameHandlerError {
                 message: "Invalid message type".to_string(),
             }),
@@ -114,11 +136,23 @@ trait HandlerState {
             message: "Forbidden game action".to_string(),
         })
     }
+
+    #[allow(unused_variables)]
+    async fn handle_first_move(
+        &self,
+        handler: &mut GameHandler,
+        choice: &str,
+    ) -> Result<Box<P2Decided>, GameHandlerError> {
+        Err(GameHandlerError {
+            message: "Forbidden game action".to_string(),
+        })
+    }
 }
 
 struct Created {}
 struct Accepted {}
 struct FirstMove {}
+struct P2Decided {}
 
 #[async_trait]
 impl HandlerState for Created {
@@ -165,4 +199,39 @@ impl HandlerState for Accepted {
     }
 }
 
-impl HandlerState for FirstMove {}
+#[async_trait]
+impl HandlerState for FirstMove {
+    async fn handle_first_move(
+        &self,
+        handler: &mut GameHandler,
+        choice: &str,
+    ) -> Result<Box<P2Decided>, GameHandlerError> {
+        let user = &handler.user;
+        let game = &mut handler.game;
+
+        // Only player2 can make this choice
+        if !game.is_users_turn(user) {
+            return Err(GameHandlerError {
+                message: "Not your turn to make this choice".to_string(),
+            });
+        }
+
+        let new_move = match choice {
+            "accept" => game.accept_first_move(),
+            "reject" => game.reject_first_move(),
+            _ => {
+                return Err(GameHandlerError {
+                    message: "Invalid first choice".to_string(),
+                });
+            }
+        };
+
+        // Save game move
+        game.state = GameState::P2Decided;
+        db::save_game_move(&handler.db, &handler.game).await;
+
+        Ok(Box::new(P2Decided {}))
+    }
+}
+
+impl HandlerState for P2Decided {}

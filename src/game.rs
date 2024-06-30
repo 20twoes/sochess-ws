@@ -84,6 +84,32 @@ impl Game {
             }
         }
     }
+
+    pub fn accept_first_move(&mut self) {
+        let last_move = self.moves.last().unwrap();
+        let new_move = Move {
+            fen: last_move.fen.clone(),
+            active_player: 1,
+            ply: last_move.ply, // No move has happened so don't increment the ply count
+            p1_owned: "B".to_string(),
+            p2_owned: "W".to_string(),
+            ..Default::default()
+        };
+        self.moves.push(new_move);
+    }
+
+    pub fn reject_first_move(&mut self) {
+        let last_move = self.moves.last().unwrap();
+        let new_move = Move {
+            fen: last_move.fen.clone(),
+            active_player: 2,
+            ply: last_move.ply, // No move has happened so don't increment the ply count
+            p1_owned: "W".to_string(),
+            p2_owned: "B".to_string(),
+            ..Default::default()
+        };
+        self.moves.push(new_move);
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -104,6 +130,17 @@ pub struct Move {
     // Timestamp
     #[serde(with = "chrono_datetime_as_bson_datetime")]
     pub ts: DateTime<Utc>,
+
+    // The army color that Player1 owns.  The value will be the color code, i.e. `W` for white
+    pub p1_owned: String,
+
+    // The army colors that Player1 controls
+    // i.e. "GY" for Green and Yellow
+    pub p1_controlled: String,
+
+    // See above
+    pub p2_owned: String,
+    pub p2_controlled: String,
 }
 
 impl Default for Move {
@@ -114,6 +151,10 @@ impl Default for Move {
             active_player: 1,
             ply: 0,
             ts: Utc::now(),
+            p1_owned: String::from(""),
+            p1_controlled: String::from(""),
+            p2_owned: String::from(""),
+            p2_controlled: String::from(""),
         }
     }
 }

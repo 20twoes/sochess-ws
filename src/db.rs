@@ -24,7 +24,7 @@ pub async fn save_game_move(db: &Database, game: &Game) {
 
     let latest_move = game.moves.last().unwrap();
     let update = doc! {
-        // Save state when saving first move
+        // Some moves alter the game state
         "$set": {
             "state": bson::to_bson(&game.state).unwrap(),
         },
