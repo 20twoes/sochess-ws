@@ -66,6 +66,10 @@ impl Game {
             fen: fen,
             active_player: active_player,
             ply: ply,
+            p1_owned: last_move.p1_owned.clone(),
+            p1_controlled: last_move.p1_controlled.clone(),
+            p2_owned: last_move.p2_owned.clone(),
+            p2_controlled: last_move.p2_controlled.clone(),
             ..Default::default()
         };
         self.moves.push(_move)

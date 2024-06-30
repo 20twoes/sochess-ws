@@ -291,9 +291,9 @@ impl HandlerState for InProgress {
             Err(GameHandlerError {
                 message: "Not your turn".to_string(),
             })
-        } else if !game_rules::is_own_piece(game.last_move(), new_move.clone()) {
+        } else if !game_rules::is_own_piece(user, game, new_move.clone()) {
             Err(GameHandlerError {
-                message: "Must move a white piece".to_string(),
+                message: "You do not own or control this piece".to_string(),
             })
         } else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
             Err(GameHandlerError {
