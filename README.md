@@ -19,7 +19,7 @@ To deploy:
 
 ```bash
 # Build Docker image.  You do not need to run the above build command.
-./bin/predeploy.sh
+sudo ./bin/predeploy.sh
 
 # Use Ansible to deploy
 cd ../devops && ./bin/sochess_deploy.sh

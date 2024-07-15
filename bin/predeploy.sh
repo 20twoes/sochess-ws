@@ -5,3 +5,5 @@ docker build -t sochess .
 # docker images
 # docker save -o sochess-image.tar <container_id>
 docker save -o sochess-image.tar sochess:latest
+
+chown -c $SUDO_USER:$SUDO_USER sochess-image.tar
