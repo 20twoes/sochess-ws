@@ -1,3 +1,4 @@
+mod chessops;
 mod db;
 mod game;
 mod game_handler;
