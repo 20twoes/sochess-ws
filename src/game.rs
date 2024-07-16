@@ -4,8 +4,8 @@ use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 
-use crate::user::User;
 use crate::chessops::Position;
+use crate::user::User;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum GameState {

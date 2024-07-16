@@ -37,9 +37,7 @@ impl Bitboard {
             count += 1;
         }
 
-        Self {
-            bv: bv,
-        }
+        Self { bv: bv }
     }
 
     /// Bit shift towards most significant bit (higher index).
@@ -54,12 +52,14 @@ impl Bitboard {
                 continue;
             }
 
-            bv.push(iter.next().expect("Invalid value found during shift_right").clone());
+            bv.push(
+                iter.next()
+                    .expect("Invalid value found during shift_right")
+                    .clone(),
+            );
         }
 
-        Self {
-            bv: bv,
-        }
+        Self { bv: bv }
     }
 
     pub fn or(&mut self, other: &Self) -> bool {
@@ -73,6 +73,7 @@ mod tests {
 
     #[test]
     fn shift_right_works() {
+        #[rustfmt::skip]
         let mut king_loc = Bitboard::from_bytes(&[
             0b00000000, 0b00000000,
             0b01000000, 0b00000000,
@@ -91,6 +92,7 @@ mod tests {
             0b00000000, 0b00000000,
             0b00000000, 0b00000000,
         ]);
+        #[rustfmt::skip]
         let expected = Bitboard::from_bytes(&[
             0b00000000, 0b00000000,
             0b00000000, 0b00000000,
@@ -118,6 +120,7 @@ mod tests {
 
     #[test]
     fn shift_left_works() {
+        #[rustfmt::skip]
         let mut king_loc = Bitboard::from_bytes(&[
             0b00000000, 0b00000000,
             0b01000000, 0b00000000,
@@ -136,6 +139,7 @@ mod tests {
             0b00000000, 0b00000000,
             0b00000000, 0b00000000,
         ]);
+        #[rustfmt::skip]
         let expected = Bitboard::from_bytes(&[
             0b10000000, 0b00000000,
             0b00000000, 0b00000000,

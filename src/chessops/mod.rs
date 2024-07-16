@@ -5,13 +5,13 @@ mod player;
 mod position;
 mod role;
 
-pub use color::Color as Color;
-pub use move_type::Move as Move;
-pub use player::Player as Player;
-pub use position::Position as Position;
-pub use role::Role as Role;
+pub use color::Color;
+pub use move_type::Move;
+pub use player::Player;
+pub use position::Position;
+pub use role::Role;
 
-use bitboard::{BOARD_WIDTH, Bitboard};
+use bitboard::{Bitboard, BOARD_WIDTH};
 
 /**
  * Explanation: https://pages.cs.wisc.edu/~psilord/blog/data/chess-pages/nonsliding.html
@@ -49,6 +49,7 @@ mod tests {
 
     #[test]
     fn king_moves_are_legal() {
+        #[rustfmt::skip]
         let king_loc = Bitboard::from_bytes(&[
             0b00000000, 0b00000000,
             0b01000000, 0b00000000,
@@ -68,6 +69,7 @@ mod tests {
             0b00000000, 0b00000000,
         ]);
 
+        #[rustfmt::skip]
         let expected = Bitboard::from_bytes(&[
             0b11100000, 0b00000000,
             0b10100000, 0b00000000,

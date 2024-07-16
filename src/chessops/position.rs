@@ -75,8 +75,16 @@ impl Position {
             '-'
         };
 
-        let mut p1_controlled = self.p1_controlled.iter().map(|x| x.to_char().clone()).collect::<Vec<char>>();
-        let mut p2_controlled = self.p2_controlled.iter().map(|x| x.to_char().clone()).collect::<Vec<char>>();
+        let mut p1_controlled = self
+            .p1_controlled
+            .iter()
+            .map(|x| x.to_char().clone())
+            .collect::<Vec<char>>();
+        let mut p2_controlled = self
+            .p2_controlled
+            .iter()
+            .map(|x| x.to_char().clone())
+            .collect::<Vec<char>>();
         let p1_controlled_computed = if p1_controlled.len() > 0 {
             p1_controlled.sort_unstable();
             p1_controlled.into_iter().collect::<String>()
@@ -99,7 +107,8 @@ impl Position {
             p2_owned,
             p2_controlled_computed,
             self.ply,
-        ).to_string()
+        )
+        .to_string()
     }
 
     pub fn active_player(&self) -> u8 {
@@ -161,7 +170,8 @@ mod tests {
                 p2_owned: None,
                 p2_controlled: HashSet::new(),
                 ply: 0,
-            }.to_fen(),
+            }
+            .to_fen(),
             Position::new_fen(),
         );
 

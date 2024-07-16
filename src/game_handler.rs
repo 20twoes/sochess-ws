@@ -246,7 +246,7 @@ impl HandlerState for Accepted {
                 }
                 Err(_) => Err(GameHandlerError {
                     message: "Illegal move".to_string(),
-                })
+                }),
             }
             //let mut new_pos = pos.play_move(&chess_move).expect("Illegal move");
 
