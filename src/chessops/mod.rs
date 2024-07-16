@@ -1,4 +1,15 @@
 mod bitboard;
+mod color;
+mod move_type;
+mod player;
+mod position;
+mod role;
+
+pub use color::Color as Color;
+pub use move_type::Move as Move;
+pub use player::Player as Player;
+pub use position::Position as Position;
+pub use role::Role as Role;
 
 use bitboard::{BOARD_WIDTH, Bitboard};
 

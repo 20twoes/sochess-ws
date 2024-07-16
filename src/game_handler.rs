@@ -4,6 +4,7 @@ use serde::Serialize;
 use std::error::Error;
 use std::fmt;
 
+use crate::chessops;
 use crate::db;
 use crate::game::{Game, GameState, Move};
 use crate::game_rules;
@@ -86,7 +87,7 @@ impl GameHandler {
                             .to_string(),
                         ..Default::default()
                     };
-                    match s.add_first_move(self, new_move).await {
+                    match s.play_first_move(self, new_move).await {
                         Ok(new_state) => {
                             self.state = Some(new_state);
                         }
@@ -126,7 +127,7 @@ impl GameHandler {
                             .to_string(),
                         ..Default::default()
                     };
-                    match s.add_move(self, new_move).await {
+                    match s.play_move(self, new_move).await {
                         Ok(new_state) => {
                             // TODO: State won't change until we end the game
                             //self.state = Some(new_state);
@@ -158,7 +159,7 @@ trait HandlerState {
     }
 
     #[allow(unused_variables)]
-    async fn add_first_move(
+    async fn play_first_move(
         &self,
         handler: &mut GameHandler,
         new_move: Move,
@@ -180,7 +181,7 @@ trait HandlerState {
     }
 
     #[allow(unused_variables)]
-    async fn add_move(
+    async fn play_move(
         &self,
         handler: &mut GameHandler,
         new_move: Move,
@@ -210,7 +211,7 @@ impl HandlerState for Created {
 
 #[async_trait]
 impl HandlerState for Accepted {
-    async fn add_first_move(
+    async fn play_first_move(
         &self,
         handler: &mut GameHandler,
         new_move: Move,
@@ -219,24 +220,37 @@ impl HandlerState for Accepted {
         let user = &handler.user;
         let current_fen = game.moves.last().unwrap().fen.clone();
 
-        if !game.is_users_turn(user) {
+        let mut pos = chessops::Position::from_fen(current_fen.clone());
+
+        if !game.is_users_turn_new(pos.active_player(), user) {
             Err(GameHandlerError {
                 message: "Not your turn".to_string(),
             })
-        } else if !game_rules::is_white_move(new_move.clone()) {
-            Err(GameHandlerError {
-                message: "Must move a white piece".to_string(),
-            })
-        } else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
-            Err(GameHandlerError {
-                message: "Illegal move".to_string(),
-            })
+        //} else if !game_rules::is_white_move(new_move.clone()) {
+        //    Err(GameHandlerError {
+        //        message: "Must move a white piece".to_string(),
+        //    })
+        //} else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
+        //    Err(GameHandlerError {
+        //        message: "Illegal move".to_string(),
+        //    })
         } else {
-            game.add_move(new_move.fen.clone());
-            game.state = GameState::FirstMove;
-            db::save_game_move(&handler.db, &handler.game).await;
+            let chess_move = chessops::Move::from_san(&new_move.san);
+            match pos.play_move(&chess_move) {
+                Ok(mut new_pos) => {
+                    game.add_move_new(new_pos.to_fen());
+                    game.state = GameState::FirstMove;
+                    db::save_game_move(&handler.db, &handler.game).await;
 
-            Ok(Box::new(FirstMove {}))
+                    Ok(Box::new(FirstMove {}))
+                }
+                Err(_) => Err(GameHandlerError {
+                    message: "Illegal move".to_string(),
+                })
+            }
+            //let mut new_pos = pos.play_move(&chess_move).expect("Illegal move");
+
+            //game.add_move(new_move.fen.clone());
         }
     }
 }
@@ -278,7 +292,7 @@ impl HandlerState for FirstMove {
 
 #[async_trait]
 impl HandlerState for InProgress {
-    async fn add_move(
+    async fn play_move(
         &self,
         handler: &mut GameHandler,
         new_move: Move,

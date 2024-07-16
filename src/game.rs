@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::default::Default;
 
 use crate::user::User;
-
-const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq";
+use crate::chessops::Position;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum GameState {
@@ -75,6 +74,13 @@ impl Game {
         self.moves.push(_move)
     }
 
+    pub fn add_move_new(&mut self, fen: String) {
+        self.moves.push(Move {
+            fen: fen,
+            ..Default::default()
+        })
+    }
+
     pub fn set_player_joined(&mut self, user: &User) {
         self.state = GameState::Accepted;
         self.player2 = Some(user.name.clone());
@@ -83,6 +89,17 @@ impl Game {
     pub fn is_users_turn(&self, user: &User) -> bool {
         let last_move = self.moves.last().unwrap();
         match last_move.active_player {
+            1 => user.name == self.player1.clone().unwrap(),
+            2 => user.name == self.player2.clone().unwrap(),
+            _ => {
+                println!("Unrecognized active_player");
+                false
+            }
+        }
+    }
+
+    pub fn is_users_turn_new(&self, active_player: u8, user: &User) -> bool {
+        match active_player {
             1 => user.name == self.player1.clone().unwrap(),
             2 => user.name == self.player2.clone().unwrap(),
             _ => {
@@ -121,31 +138,41 @@ impl Game {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Move {
-    // Standard Algebraic Notation - notates the piece moved
+    /// Standard Algebraic Notation - notates the piece moved
     pub san: String,
 
-    // Forsyth-Edwards Notation - notates the resulting board position
+    /**
+     * Forsyth-Edwards Notation - notates the resulting board position
+     * Fields:
+     * - Piece placement.  Each piece is represented by two characters.  Color and Role
+     * - Active player: 1 or 0
+     * - Player 1's owned army.  e.g. `W` for White army
+     * - Player 1's controlled armies.  e.g. `GY` for Green and Yellow armies
+     * - Player 2's owned army
+     * - Player 2's controlled armies
+     * - Ply or halfmove number.  Starts at 1 after first move.
+     */
     pub fen: String,
 
-    // The player whose turn to move it is
-    // `1` means Player1 is to move; `2` means Player2 is to move
+    /// The player whose turn to move it is
+    /// `1` means Player1 is to move; `2` means Player2 is to move
     pub active_player: u8,
 
-    // Half-turn, equal to one move by a player
+    /// Half-turn, equal to one move by a player
     pub ply: u32,
 
-    // Timestamp
+    /// Timestamp
     #[serde(with = "chrono_datetime_as_bson_datetime")]
     pub ts: DateTime<Utc>,
 
-    // The army color that Player1 owns.  The value will be the color code, i.e. `W` for white
+    /// The army color that Player1 owns.  The value will be the color code, i.e. `W` for white
     pub p1_owned: String,
 
-    // The army colors that Player1 controls
-    // i.e. "GY" for Green and Yellow
+    /// The army colors that Player1 controls
+    /// i.e. "GY" for Green and Yellow
     pub p1_controlled: String,
 
-    // See above
+    /// See above
     pub p2_owned: String,
     pub p2_controlled: String,
 }
@@ -154,7 +181,7 @@ impl Default for Move {
     fn default() -> Self {
         Self {
             san: String::from(""),
-            fen: String::from(INITIAL_FEN),
+            fen: Position::new_fen(),
             active_player: 1,
             ply: 0,
             ts: Utc::now(),
