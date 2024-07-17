@@ -226,16 +226,19 @@ impl HandlerState for Accepted {
             Err(GameHandlerError {
                 message: "Not your turn".to_string(),
             })
-        //} else if !game_rules::is_white_move(new_move.clone()) {
-        //    Err(GameHandlerError {
-        //        message: "Must move a white piece".to_string(),
-        //    })
-        //} else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
-        //    Err(GameHandlerError {
-        //        message: "Illegal move".to_string(),
-        //    })
         } else {
             let chess_move = chessops::Move::from_san(&new_move.san);
+            //if let Err(_) = pos.play_move(&chess_move) {
+            //    return Err(GameHandlerError {
+            //        message: "Illegal move".to_string(),
+            //    });
+            //};
+            //game.add_move_new(pos.to_fen());
+            //game.state = GameState::FirstMove;
+            //db::save_game_move(&handler.db, &handler.game).await;
+
+            //Ok(Box::new(FirstMove {}))
+
             match pos.play_move(&chess_move) {
                 Ok(mut new_pos) => {
                     game.add_move_new(new_pos.to_fen());

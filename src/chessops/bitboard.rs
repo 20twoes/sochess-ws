@@ -1,7 +1,7 @@
 use bit_vec::BitVec;
 
 pub const BOARD_WIDTH: usize = 16;
-const BOARD_SIZE: usize = BOARD_WIDTH * BOARD_WIDTH;
+pub const BOARD_SIZE: usize = BOARD_WIDTH * BOARD_WIDTH;
 
 /**
  * Bitboard for 256 square Sovereign Chess board.
@@ -74,7 +74,7 @@ mod tests {
     #[test]
     fn shift_right_works() {
         #[rustfmt::skip]
-        let mut king_loc = Bitboard::from_bytes(&[
+        let king_loc = Bitboard::from_bytes(&[
             0b00000000, 0b00000000,
             0b01000000, 0b00000000,
             0b00000000, 0b00000000,
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn shift_left_works() {
         #[rustfmt::skip]
-        let mut king_loc = Bitboard::from_bytes(&[
+        let king_loc = Bitboard::from_bytes(&[
             0b00000000, 0b00000000,
             0b01000000, 0b00000000,
             0b00000000, 0b00000000,

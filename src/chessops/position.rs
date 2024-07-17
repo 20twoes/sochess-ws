@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::chessops::{Color, Move, Player};
+use crate::chessops::{Board, Color, Fen, Move, Piece, Player};
 
 const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq 1 - - - - 0";
 
@@ -9,7 +9,7 @@ pub struct PlayError {}
 
 #[derive(Debug, PartialEq)]
 pub struct Position {
-    board: String,
+    board: Board,
     active_player: Player,
     p1_owned: Option<Color>,
     p1_controlled: HashSet<Color>,
@@ -27,49 +27,18 @@ impl Position {
         Self::from_fen(Self::new_fen())
     }
 
-    /**
-     * Forsyth-Edwards Notation - notates the resulting board position
-     * Fields:
-     * - Piece placement.  Each piece is represented by two characters.  Color and Role
-     * - Active player: 1 or 0
-     * - Player 1's owned army.  e.g. `W` for White army
-     * - Player 1's controlled armies.  e.g. `GY` for Green and Yellow armies
-     * - Player 2's owned army
-     * - Player 2's controlled armies
-     * - Ply or halfmove number.  Starts at 1 after first move.
-     */
     pub fn from_fen(fen: String) -> Self {
-        let parts: Vec<&str> = fen.split(' ').collect();
-        assert_eq!(parts.len(), 7);
-        assert_eq!(parts[1].len(), 1);
-        assert_eq!(parts[2].len(), 1);
-        assert_eq!(parts[4].len(), 1);
+        let (board, active_player, p1_owned, p1_controlled, p2_owned, p2_controlled, ply) =
+            Fen::parse(&fen);
 
-        let active_player = Player::from_char(parts[1].chars().nth(0).unwrap());
-        assert!(active_player.is_some());
-
-        let mut p1_controlled = HashSet::new();
-        for ch in parts[3].chars() {
-            if let Some(c) = Color::from_char(ch) {
-                p1_controlled.insert(c);
-            }
-        }
-
-        let mut p2_controlled = HashSet::new();
-        for ch in parts[5].chars() {
-            if let Some(c) = Color::from_char(ch) {
-                p2_controlled.insert(c);
-            }
-        }
-
-        Self {
-            board: parts[0].to_string(),
-            active_player: active_player.unwrap(),
-            p1_owned: Color::from_char(parts[2].chars().nth(0).unwrap()),
+        Position {
+            board: board,
+            active_player: active_player,
+            p1_owned: p1_owned,
             p1_controlled: p1_controlled,
-            p2_owned: Color::from_char(parts[4].chars().nth(0).unwrap()),
+            p2_owned: p2_owned,
             p2_controlled: p2_controlled,
-            ply: parts[6].parse::<u32>().expect("`ply` is invalid"),
+            ply,
         }
     }
 
@@ -111,7 +80,7 @@ impl Position {
 
         format!(
             "{} {} {} {} {} {} {}",
-            self.board,
+            Fen::from_board(&self.board),
             self.active_player.to_int(),
             p1_owned,
             p1_controlled_computed,
@@ -134,6 +103,15 @@ impl Position {
                 return Err(PlayError {});
             }
         }
+
+        // Update Board
+        // Remove piece on starting square
+        self.board.pieces.remove(&new_move.from);
+
+        // Add piece on ending square
+        let piece = Piece { color: new_move.color.clone(), role: new_move.role.clone() };
+        self.board.pieces.insert(new_move.to.clone(), piece);
+
         self.active_player = self.active_player.next();
         self.ply += 1;
         Ok(self)
@@ -159,7 +137,7 @@ mod tests {
         assert_eq!(
             Position::from_fen(Position::new_fen()),
             Position {
-                board: INITIAL_FEN.split(' ').next().unwrap().to_string(),
+                board: Fen::to_board(INITIAL_FEN.split(' ').next().unwrap()),
                 active_player: Player::P1,
                 p1_owned: None,
                 p1_controlled: HashSet::new(),
@@ -174,7 +152,7 @@ mod tests {
     fn to_fen_works() {
         assert_eq!(
             Position {
-                board: INITIAL_FEN.split(' ').next().unwrap().to_string(),
+                board: Fen::to_board(INITIAL_FEN.split(' ').next().unwrap()),
                 active_player: Player::P1,
                 p1_owned: None,
                 p1_controlled: HashSet::new(),
@@ -188,7 +166,7 @@ mod tests {
 
         assert_eq!(
             Position {
-                board: INITIAL_FEN.split(' ').next().unwrap().to_string(),
+                board: Fen::to_board(INITIAL_FEN.split(' ').next().unwrap()),
                 active_player: Player::P1,
                 p1_owned: Some(Color::White),
                 p1_controlled: HashSet::from([Color::Green]),
@@ -196,7 +174,7 @@ mod tests {
                 p2_controlled: HashSet::from([Color::Yellow, Color::Pink]),
                 ply: 0,
             }.to_fen(),
-            "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq 1 W G B PY 0".to_string(),
+            "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq 1 w g b py 0".to_string(),
         );
     }
 
@@ -204,7 +182,7 @@ mod tests {
     fn play_move_updates_fields() {
         let mut pos = Position::new();
         let new_move = Move::from_san("WNb01c03");
-        let mut new_pos = pos.play_move(&new_move).unwrap();
+        let new_pos = pos.play_move(&new_move).unwrap();
 
         assert_eq!(new_pos.active_player, Player::P2);
         assert_eq!(new_pos.ply, 1);

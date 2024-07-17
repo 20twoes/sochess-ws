@@ -17,36 +17,36 @@ pub enum Color {
 impl Color {
     pub fn from_char(ch: char) -> Option<Self> {
         match ch {
-            'A' => Some(Self::Ash),
-            'B' => Some(Self::Black),
-            'C' => Some(Self::Cyan),
-            'G' => Some(Self::Green),
-            'N' => Some(Self::Navy),
-            'O' => Some(Self::Orange),
-            'P' => Some(Self::Pink),
-            'R' => Some(Self::Red),
-            'S' => Some(Self::Slate),
-            'V' => Some(Self::Violet),
-            'W' => Some(Self::White),
-            'Y' => Some(Self::Yellow),
+            'a' => Some(Self::Ash),
+            'b' => Some(Self::Black),
+            'c' => Some(Self::Cyan),
+            'g' => Some(Self::Green),
+            'n' => Some(Self::Navy),
+            'o' => Some(Self::Orange),
+            'p' => Some(Self::Pink),
+            'r' => Some(Self::Red),
+            's' => Some(Self::Slate),
+            'v' => Some(Self::Violet),
+            'w' => Some(Self::White),
+            'y' => Some(Self::Yellow),
             _ => None,
         }
     }
 
     pub fn to_char(&self) -> char {
         match self {
-            Self::Ash => 'A',
-            Self::Black => 'B',
-            Self::Cyan => 'C',
-            Self::Green => 'G',
-            Self::Navy => 'N',
-            Self::Orange => 'O',
-            Self::Pink => 'P',
-            Self::Red => 'R',
-            Self::Slate => 'S',
-            Self::Violet => 'V',
-            Self::White => 'W',
-            Self::Yellow => 'Y',
+            Self::Ash => 'a',
+            Self::Black => 'b',
+            Self::Cyan => 'c',
+            Self::Green => 'g',
+            Self::Navy => 'n',
+            Self::Orange => 'o',
+            Self::Pink => 'p',
+            Self::Red => 'r',
+            Self::Slate => 's',
+            Self::Violet => 'v',
+            Self::White => 'w',
+            Self::Yellow => 'y',
         }
     }
 }
@@ -58,9 +58,9 @@ mod tests {
     #[test]
     fn to_char_works() {
         let color = Color::Ash;
-        assert_eq!(color.to_char(), 'A');
+        assert_eq!(color.to_char(), 'a');
 
         let color = Color::White;
-        assert_eq!(color.to_char(), 'W');
+        assert_eq!(color.to_char(), 'w');
     }
 }

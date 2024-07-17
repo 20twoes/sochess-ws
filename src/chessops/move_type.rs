@@ -11,12 +11,15 @@ pub struct Move {
 impl Move {
     pub fn from_san(san: &str) -> Self {
         assert_eq!(san.len(), 8);
+        let lcase_san = san.to_lowercase();
 
         Self {
-            color: Color::from_char(san[0..1].chars().nth(0).unwrap()).expect("Invalid move color"),
-            role: Role::from_char(san[1..2].chars().nth(0).unwrap()).expect("Invalid move role"),
-            from: Square::from_str(&san[2..5]),
-            to: Square::from_str(&san[5..8]),
+            color: Color::from_char(lcase_san[0..1].chars().nth(0).unwrap())
+                .expect("Invalid move color"),
+            role: Role::from_char(lcase_san[1..2].chars().nth(0).unwrap())
+                .expect("Invalid move role"),
+            from: Square::from_str(&lcase_san[2..5]),
+            to: Square::from_str(&lcase_san[5..8]),
         }
     }
 }

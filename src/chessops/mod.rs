@@ -1,19 +1,25 @@
 mod bitboard;
+mod board;
 mod color;
+mod fen;
 mod move_type;
+mod piece;
 mod player;
 mod position;
 mod role;
 mod square;
 
+pub use board::Board;
 pub use color::Color;
+pub use fen::Fen;
 pub use move_type::Move;
+pub use piece::Piece;
 pub use player::Player;
 pub use position::Position;
 pub use role::Role;
 pub use square::Square;
 
-use bitboard::{Bitboard, BOARD_WIDTH};
+use bitboard::{Bitboard, BOARD_SIZE, BOARD_WIDTH};
 
 /**
  * Explanation: https://pages.cs.wisc.edu/~psilord/blog/data/chess-pages/nonsliding.html

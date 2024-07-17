@@ -22,34 +22,34 @@ pub enum File {
 }
 
 impl File {
-    fn from_str(s: &str) -> Self {
-        let i = File::str_to_index(s);
-        FILE_INDEX[i].clone()
-    }
+    //fn from_str(s: &str) -> Self {
+    //    let i = File::str_to_index(s);
+    //    FILE_INDEX[i].clone()
+    //}
 
     fn str_to_index(s: &str) -> usize {
         FILE_IDS.iter().position(|&x| x == s).expect("Invalid file")
     }
 }
 
-const FILE_INDEX: [File; 16] = [
-    File::A,
-    File::B,
-    File::C,
-    File::D,
-    File::E,
-    File::F,
-    File::G,
-    File::H,
-    File::I,
-    File::J,
-    File::K,
-    File::L,
-    File::M,
-    File::N,
-    File::O,
-    File::P,
-];
+//    File::A,
+//const FILE_INDEX: [File; 16] = [
+//    File::B,
+//    File::C,
+//    File::D,
+//    File::E,
+//    File::F,
+//    File::G,
+//    File::H,
+//    File::I,
+//    File::J,
+//    File::K,
+//    File::L,
+//    File::M,
+//    File::N,
+//    File::O,
+//    File::P,
+//];
 
 const FILE_IDS: [&str; 16] = [
     "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
@@ -77,40 +77,40 @@ enum Rank {
 }
 
 impl Rank {
-    fn from_str(s: &str) -> Self {
-        let i = Rank::str_to_index(s);
-        RANK_INDEX[i].clone()
-    }
+    //fn from_str(s: &str) -> Self {
+    //    let i = Rank::str_to_index(s);
+    //    RANK_INDEX[i].clone()
+    //}
 
     fn str_to_index(s: &str) -> usize {
         RANK_IDS.iter().position(|&x| x == s).expect("Invalid rank")
     }
 }
 
-const RANK_INDEX: [Rank; 16] = [
-    Rank::R1,
-    Rank::R2,
-    Rank::R3,
-    Rank::R4,
-    Rank::R5,
-    Rank::R6,
-    Rank::R7,
-    Rank::R8,
-    Rank::R9,
-    Rank::R10,
-    Rank::R11,
-    Rank::R12,
-    Rank::R13,
-    Rank::R14,
-    Rank::R15,
-    Rank::R16,
-];
+//const RANK_INDEX: [Rank; 16] = [
+//    Rank::R1,
+//    Rank::R2,
+//    Rank::R3,
+//    Rank::R4,
+//    Rank::R5,
+//    Rank::R6,
+//    Rank::R7,
+//    Rank::R8,
+//    Rank::R9,
+//    Rank::R10,
+//    Rank::R11,
+//    Rank::R12,
+//    Rank::R13,
+//    Rank::R14,
+//    Rank::R15,
+//    Rank::R16,
+//];
 
 const RANK_IDS: [&str; 16] = [
     "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16",
 ];
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[repr(u16)]
 pub enum Square {
     A1 = 0,
@@ -372,6 +372,10 @@ pub enum Square {
 }
 
 impl Square {
+    fn calc_index(file_index: usize, rank_index: usize) -> usize {
+        (rank_index * BOARD_WIDTH) + file_index
+    }
+
     // e.g. get Square::A1 from "A01"
     pub fn from_str(s: &str) -> Self {
         assert_eq!(s.len(), 3);
@@ -380,15 +384,20 @@ impl Square {
         let rank_id = &s[1..3];
         let file_index = File::str_to_index(file_id);
         let rank_index = Rank::str_to_index(rank_id);
-        let index = (rank_index * BOARD_WIDTH as usize) + file_index;
+        let index = Square::calc_index(file_index, rank_index);
 
         SQUARE_INDEX[index].clone()
     }
 
-    pub fn file(&self) -> File {
-        let i = self.clone() as usize;
-        FILE_INDEX[i % BOARD_WIDTH as usize].clone()
+    pub fn from_file_and_rank_index(file: usize, rank: usize) -> Self {
+        let index = Square::calc_index(file, rank);
+        SQUARE_INDEX[index].clone()
     }
+
+    //pub fn file(&self) -> File {
+    //    let i = self.clone() as usize;
+    //    FILE_INDEX[i % BOARD_WIDTH].clone()
+    //}
 }
 
 const SQUARE_INDEX: [Square; 256] = [
@@ -664,24 +673,24 @@ mod tests {
         assert_eq!(Square::from_str("p16"), Square::P16);
     }
 
-    #[test]
-    fn square_file_works() {
-        assert_eq!(Square::A1.file(), File::A);
-        assert_eq!(Square::A2.file(), File::A);
-        assert_eq!(Square::B2.file(), File::B);
-        assert_eq!(Square::C3.file(), File::C);
-        assert_eq!(Square::D4.file(), File::D);
-        assert_eq!(Square::E5.file(), File::E);
-        assert_eq!(Square::F6.file(), File::F);
-        assert_eq!(Square::G7.file(), File::G);
-        assert_eq!(Square::H8.file(), File::H);
-        assert_eq!(Square::I9.file(), File::I);
-        assert_eq!(Square::J10.file(), File::J);
-        assert_eq!(Square::K11.file(), File::K);
-        assert_eq!(Square::L12.file(), File::L);
-        assert_eq!(Square::M13.file(), File::M);
-        assert_eq!(Square::N14.file(), File::N);
-        assert_eq!(Square::O15.file(), File::O);
-        assert_eq!(Square::P16.file(), File::P);
-    }
+    //#[test]
+    //fn square_file_works() {
+    //    assert_eq!(Square::A1.file(), File::A);
+    //    assert_eq!(Square::A2.file(), File::A);
+    //    assert_eq!(Square::B2.file(), File::B);
+    //    assert_eq!(Square::C3.file(), File::C);
+    //    assert_eq!(Square::D4.file(), File::D);
+    //    assert_eq!(Square::E5.file(), File::E);
+    //    assert_eq!(Square::F6.file(), File::F);
+    //    assert_eq!(Square::G7.file(), File::G);
+    //    assert_eq!(Square::H8.file(), File::H);
+    //    assert_eq!(Square::I9.file(), File::I);
+    //    assert_eq!(Square::J10.file(), File::J);
+    //    assert_eq!(Square::K11.file(), File::K);
+    //    assert_eq!(Square::L12.file(), File::L);
+    //    assert_eq!(Square::M13.file(), File::M);
+    //    assert_eq!(Square::N14.file(), File::N);
+    //    assert_eq!(Square::O15.file(), File::O);
+    //    assert_eq!(Square::P16.file(), File::P);
+    //}
 }
