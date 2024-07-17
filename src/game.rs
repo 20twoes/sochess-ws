@@ -4,8 +4,8 @@ use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 
-use crate::chessops::Position;
 use crate::user::User;
+use crate::chessops::Position;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum GameState {
@@ -115,8 +115,8 @@ impl Game {
             fen: last_move.fen.clone(),
             active_player: 1,
             ply: last_move.ply, // No move has happened so don't increment the ply count
-            p1_owned: "B".to_string(),
-            p2_owned: "W".to_string(),
+            p1_owned: "b".to_string(),
+            p2_owned: "w".to_string(),
             ..Default::default()
         };
         self.moves.push(new_move);
@@ -128,8 +128,8 @@ impl Game {
             fen: last_move.fen.clone(),
             active_player: 2,
             ply: last_move.ply, // No move has happened so don't increment the ply count
-            p1_owned: "W".to_string(),
-            p2_owned: "B".to_string(),
+            p1_owned: "w".to_string(),
+            p2_owned: "b".to_string(),
             ..Default::default()
         };
         self.moves.push(new_move);

@@ -102,6 +102,9 @@ impl Position {
             if new_move.color != Color::White {
                 return Err(PlayError {});
             }
+        } else if !self.does_color_belong_to_user(&new_move.color) {
+            // Check if user owns or controls this army
+            return Err(PlayError {});
         }
 
         // Update Board
@@ -125,6 +128,45 @@ impl Position {
         //    }
         //    _ => todo!(),
         //}
+    }
+
+    pub fn accept_first_move(&mut self) -> &Self {
+        self.active_player = Player::P1;
+        self.p1_owned = Some(Color::Black);
+        self.p2_owned = Some(Color::White);
+
+        self
+    }
+
+    pub fn reject_first_move(&mut self) -> &Self {
+        self.active_player = Player::P2;
+        self.p1_owned = Some(Color::White);
+        self.p2_owned = Some(Color::Black);
+
+        self
+    }
+
+    fn does_color_belong_to_user(&self, color: &Color) -> bool {
+        match self.active_player {
+            Player::P1 => {
+                if *color == self.p1_owned.clone().unwrap() {
+                    true
+                } else if self.p1_controlled.contains(color) {
+                    true
+                } else {
+                    false
+                }
+            }
+            Player::P2 => {
+                if *color == self.p2_owned.clone().unwrap() {
+                    true
+                } else if self.p2_controlled.contains(color) {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
     }
 }
 

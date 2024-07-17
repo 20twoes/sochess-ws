@@ -77,10 +77,6 @@ impl GameHandler {
             Some("first_move") => {
                 if let Some(s) = self.state.take() {
                     let new_move = Move {
-                        fen: json["d"]["fen"]
-                            .as_str()
-                            .expect("Cannot find FEN in data object")
-                            .to_string(),
                         san: json["d"]["san"]
                             .as_str()
                             .expect("Cannot find SAN in data object")
@@ -117,10 +113,6 @@ impl GameHandler {
             Some("move") => {
                 if let Some(s) = self.state.take() {
                     let new_move = Move {
-                        fen: json["d"]["fen"]
-                            .as_str()
-                            .expect("Cannot find FEN in data object")
-                            .to_string(),
                         san: json["d"]["san"]
                             .as_str()
                             .expect("Cannot find SAN in data object")
@@ -219,7 +211,6 @@ impl HandlerState for Accepted {
         let game = &mut handler.game;
         let user = &handler.user;
         let current_fen = game.moves.last().unwrap().fen.clone();
-
         let mut pos = chessops::Position::from_fen(current_fen.clone());
 
         if !game.is_users_turn_new(pos.active_player(), user) {
@@ -228,17 +219,6 @@ impl HandlerState for Accepted {
             })
         } else {
             let chess_move = chessops::Move::from_san(&new_move.san);
-            //if let Err(_) = pos.play_move(&chess_move) {
-            //    return Err(GameHandlerError {
-            //        message: "Illegal move".to_string(),
-            //    });
-            //};
-            //game.add_move_new(pos.to_fen());
-            //game.state = GameState::FirstMove;
-            //db::save_game_move(&handler.db, &handler.game).await;
-
-            //Ok(Box::new(FirstMove {}))
-
             match pos.play_move(&chess_move) {
                 Ok(mut new_pos) => {
                     game.add_move_new(new_pos.to_fen());
@@ -251,9 +231,6 @@ impl HandlerState for Accepted {
                     message: "Illegal move".to_string(),
                 }),
             }
-            //let mut new_pos = pos.play_move(&chess_move).expect("Illegal move");
-
-            //game.add_move(new_move.fen.clone());
         }
     }
 }
@@ -267,17 +244,19 @@ impl HandlerState for FirstMove {
     ) -> Result<Box<InProgress>, GameHandlerError> {
         let user = &handler.user;
         let game = &mut handler.game;
+        let current_fen = game.moves.last().unwrap().fen.clone();
+        let mut pos = chessops::Position::from_fen(current_fen.clone());
 
         // Only player2 can make this choice
-        if !game.is_users_turn(user) {
+        if !game.is_users_turn_new(pos.active_player(), user) {
             return Err(GameHandlerError {
                 message: "Not your turn to make this choice".to_string(),
             });
         }
 
-        let new_move = match choice {
-            "accept" => game.accept_first_move(),
-            "reject" => game.reject_first_move(),
+        let new_pos = match choice {
+            "accept" => pos.accept_first_move(),
+            "reject" => pos.reject_first_move(),
             _ => {
                 return Err(GameHandlerError {
                     message: "Invalid first choice".to_string(),
@@ -287,6 +266,7 @@ impl HandlerState for FirstMove {
 
         // Save game move
         game.state = GameState::InProgress;
+        game.add_move_new(new_pos.to_fen());
         db::save_game_move(&handler.db, &handler.game).await;
 
         Ok(Box::new(InProgress {}))
@@ -303,24 +283,34 @@ impl HandlerState for InProgress {
         let game = &mut handler.game;
         let user = &handler.user;
         let current_fen = game.moves.last().unwrap().fen.clone();
+        let mut pos = chessops::Position::from_fen(current_fen.clone());
 
-        if !game.is_users_turn(user) {
+        if !game.is_users_turn_new(pos.active_player(), user) {
             Err(GameHandlerError {
                 message: "Not your turn".to_string(),
             })
-        } else if !game_rules::is_own_piece(user, game, new_move.clone()) {
-            Err(GameHandlerError {
-                message: "You do not own or control this piece".to_string(),
-            })
-        } else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
-            Err(GameHandlerError {
-                message: "Illegal move".to_string(),
-            })
+        //} else if !game_rules::is_own_piece(user, game, new_move.clone()) {
+        //    Err(GameHandlerError {
+        //        message: "You do not own or control this piece".to_string(),
+        //    })
+        //} else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
+        //    Err(GameHandlerError {
+        //        message: "Illegal move".to_string(),
+        //    })
         } else {
-            game.add_move(new_move.fen.clone());
-            db::save_game_move(&handler.db, &handler.game).await;
+            let chess_move = chessops::Move::from_san(&new_move.san);
+            match pos.play_move(&chess_move) {
+                Ok(mut new_pos) => {
+                    game.add_move_new(new_pos.to_fen());
+                    game.state = GameState::InProgress;
+                    db::save_game_move(&handler.db, &handler.game).await;
 
-            Ok(Box::new(InProgress {}))
+                    Ok(Box::new(InProgress {}))
+                }
+                Err(_) => Err(GameHandlerError {
+                    message: "Illegal move".to_string(),
+                }),
+            }
         }
     }
 }
