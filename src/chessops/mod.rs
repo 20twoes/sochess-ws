@@ -4,12 +4,14 @@ mod move_type;
 mod player;
 mod position;
 mod role;
+mod square;
 
 pub use color::Color;
 pub use move_type::Move;
 pub use player::Player;
 pub use position::Position;
 pub use role::Role;
+pub use square::Square;
 
 use bitboard::{Bitboard, BOARD_WIDTH};
 

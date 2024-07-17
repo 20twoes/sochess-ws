@@ -27,6 +27,17 @@ impl Position {
         Self::from_fen(Self::new_fen())
     }
 
+    /**
+     * Forsyth-Edwards Notation - notates the resulting board position
+     * Fields:
+     * - Piece placement.  Each piece is represented by two characters.  Color and Role
+     * - Active player: 1 or 0
+     * - Player 1's owned army.  e.g. `W` for White army
+     * - Player 1's controlled armies.  e.g. `GY` for Green and Yellow armies
+     * - Player 2's owned army
+     * - Player 2's controlled armies
+     * - Ply or halfmove number.  Starts at 1 after first move.
+     */
     pub fn from_fen(fen: String) -> Self {
         let parts: Vec<&str> = fen.split(' ').collect();
         assert_eq!(parts.len(), 7);
@@ -192,7 +203,7 @@ mod tests {
     #[test]
     fn play_move_updates_fields() {
         let mut pos = Position::new();
-        let new_move = Move::from_san("WNb1c3");
+        let new_move = Move::from_san("WNb01c03");
         let mut new_pos = pos.play_move(&new_move).unwrap();
 
         assert_eq!(new_pos.active_player, Player::P2);
