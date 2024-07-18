@@ -81,9 +81,7 @@ impl Fen {
     }
 
     pub fn to_board(board_fen: &str) -> Board {
-        let mut board = Board {
-            pieces: HashMap::new(),
-        };
+        let mut board = Board::new();
 
         // Split fen into ranks
         let ranks: Vec<&str> = board_fen.split("/").collect();
@@ -109,7 +107,7 @@ impl Fen {
                         role: Role::from_char(role).expect("Invalid role"),
                     };
                     let square = Fen::fen_index_to_square(index);
-                    board.pieces.insert(square, piece);
+                    board.insert_piece(square, piece);
                     index += 1;
                 }
             }
@@ -133,7 +131,7 @@ impl Fen {
             }
 
             let square = Fen::fen_index_to_square(i);
-            match board.pieces.get(&square) {
+            match board.by_square.get(&square) {
                 Some(piece) => {
                     // Add skipped squares count
                     if empty_squares > 0 {
@@ -165,27 +163,27 @@ mod tests {
         let board_fen = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq";
         let board = Fen::to_board(board_fen);
         assert_eq!(
-            *board.pieces.get(&Square::A16).unwrap(),
+            *board.by_square.get(&Square::A16).unwrap(),
             Piece {
                 color: Color::Ash,
                 role: Role::Queen,
             },
         );
         assert_eq!(
-            *board.pieces.get(&Square::C2).unwrap(),
+            *board.by_square.get(&Square::C2).unwrap(),
             Piece {
                 color: Color::Pink,
                 role: Role::Pawn,
             },
         );
         assert_eq!(
-            *board.pieces.get(&Square::P16).unwrap(),
+            *board.by_square.get(&Square::P16).unwrap(),
             Piece {
                 color: Color::Slate,
                 role: Role::Queen,
             },
         );
-        assert!(board.pieces.get(&Square::I8).is_none());
+        assert!(board.by_square.get(&Square::I8).is_none());
     }
 
     #[test]
@@ -202,26 +200,25 @@ mod tests {
         let pieces = HashMap::from([
             (Square::A1, Piece { color: Color::White, role: Role::King }),
         ]);
-        let board = Board { pieces:  pieces };
+        let mut board = Board::new();
+        board.by_square = pieces;
         assert_eq!(
             Fen::from_board(&board),
             "16/16/16/16/16/16/16/16/16/16/16/16/16/16/16/wk15".to_string(),
         );
 
-        let pieces = HashMap::from([
+        board.by_square = HashMap::from([
             (Square::A16, Piece { color: Color::White, role: Role::King }),
         ]);
-        let board = Board { pieces:  pieces };
         assert_eq!(
             Fen::from_board(&board),
             "wk15/16/16/16/16/16/16/16/16/16/16/16/16/16/16/16".to_string(),
         );
 
-        let pieces = HashMap::from([
+        board.by_square = HashMap::from([
             (Square::A16, Piece { color: Color::White, role: Role::King }),
             (Square::G13, Piece { color: Color::Black, role: Role::Pawn }),
         ]);
-        let board = Board { pieces:  pieces };
         assert_eq!(
             Fen::from_board(&board),
             "wk15/16/16/06bp09/16/16/16/16/16/16/16/16/16/16/16/16".to_string(),

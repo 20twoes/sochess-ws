@@ -22,8 +22,22 @@ impl Bitboard {
         }
     }
 
+    pub fn new() -> Self {
+        Self {
+            bv: BitVec::from_elem(BOARD_SIZE, false),
+        }
+    }
+
+    pub fn get(&self, i: usize) -> Option<bool> {
+        self.bv.get(i)
+    }
+
     pub fn len(&self) -> usize {
         self.bv.len()
+    }
+
+    pub fn set(&mut self, i: usize, val: bool) {
+        self.bv.set(i, val);
     }
 
     /// Bit shift towards least significant bit (lower index).

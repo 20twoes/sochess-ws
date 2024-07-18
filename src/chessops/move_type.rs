@@ -1,4 +1,4 @@
-use crate::chessops::{Color, Role, Square};
+use crate::chessops::{Color, Piece, Role, Square};
 
 #[derive(Debug, PartialEq)]
 pub struct Move {
@@ -20,6 +20,13 @@ impl Move {
                 .expect("Invalid move role"),
             from: Square::from_str(&lcase_san[2..5]),
             to: Square::from_str(&lcase_san[5..8]),
+        }
+    }
+
+    pub fn to_piece(&self) -> Piece {
+        Piece {
+            color: self.color.clone(),
+            role: self.role.clone(),
         }
     }
 }

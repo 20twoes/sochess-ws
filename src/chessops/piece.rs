@@ -1,6 +1,6 @@
 use crate::chessops::{Color, Role};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Piece {
     pub color: Color,
     pub role: Role,

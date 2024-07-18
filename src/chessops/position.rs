@@ -107,13 +107,17 @@ impl Position {
             return Err(PlayError {});
         }
 
+        if !self.board.is_legal_move(&new_move) {
+            return Err(PlayError {});
+        }
+
         // Update Board
         // Remove piece on starting square
-        self.board.pieces.remove(&new_move.from);
+        self.board.by_square.remove(&new_move.from);
 
         // Add piece on ending square
         let piece = Piece { color: new_move.color.clone(), role: new_move.role.clone() };
-        self.board.pieces.insert(new_move.to.clone(), piece);
+        self.board.by_square.insert(new_move.to.clone(), piece);
 
         self.active_player = self.active_player.next();
         self.ply += 1;
