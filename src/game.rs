@@ -4,8 +4,8 @@ use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 
-use crate::user::User;
 use crate::chessops::Position;
+use crate::user::User;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum GameState {
@@ -49,30 +49,30 @@ impl Game {
         }
     }
 
-    pub fn last_move(&mut self) -> Move {
-        self.moves.last().unwrap().clone()
-    }
+    //pub fn last_move(&mut self) -> Move {
+    //    self.moves.last().unwrap().clone()
+    //}
 
     //pub fn fen(&self) -> Option<String> {
     //    Some(self.moves.last()?.fen.clone())
     //}
 
-    pub fn add_move(&mut self, fen: String) {
-        let last_move = self.moves.last().unwrap();
-        let active_player = if last_move.active_player == 1 { 2 } else { 1 };
-        let ply = last_move.ply + 1;
-        let _move: Move = Move {
-            fen: fen,
-            active_player: active_player,
-            ply: ply,
-            p1_owned: last_move.p1_owned.clone(),
-            p1_controlled: last_move.p1_controlled.clone(),
-            p2_owned: last_move.p2_owned.clone(),
-            p2_controlled: last_move.p2_controlled.clone(),
-            ..Default::default()
-        };
-        self.moves.push(_move)
-    }
+    //pub fn add_move(&mut self, fen: String) {
+    //    let last_move = self.moves.last().unwrap();
+    //    let active_player = if last_move.active_player == 1 { 2 } else { 1 };
+    //    let ply = last_move.ply + 1;
+    //    let _move: Move = Move {
+    //        fen: fen,
+    //        active_player: active_player,
+    //        ply: ply,
+    //        p1_owned: last_move.p1_owned.clone(),
+    //        p1_controlled: last_move.p1_controlled.clone(),
+    //        p2_owned: last_move.p2_owned.clone(),
+    //        p2_controlled: last_move.p2_controlled.clone(),
+    //        ..Default::default()
+    //    };
+    //    self.moves.push(_move)
+    //}
 
     pub fn add_move_new(&mut self, fen: String) {
         self.moves.push(Move {
@@ -86,17 +86,17 @@ impl Game {
         self.player2 = Some(user.name.clone());
     }
 
-    pub fn is_users_turn(&self, user: &User) -> bool {
-        let last_move = self.moves.last().unwrap();
-        match last_move.active_player {
-            1 => user.name == self.player1.clone().unwrap(),
-            2 => user.name == self.player2.clone().unwrap(),
-            _ => {
-                println!("Unrecognized active_player");
-                false
-            }
-        }
-    }
+    //pub fn is_users_turn(&self, user: &User) -> bool {
+    //    let last_move = self.moves.last().unwrap();
+    //    match last_move.active_player {
+    //        1 => user.name == self.player1.clone().unwrap(),
+    //        2 => user.name == self.player2.clone().unwrap(),
+    //        _ => {
+    //            println!("Unrecognized active_player");
+    //            false
+    //        }
+    //    }
+    //}
 
     pub fn is_users_turn_new(&self, active_player: u8, user: &User) -> bool {
         match active_player {
@@ -109,31 +109,31 @@ impl Game {
         }
     }
 
-    pub fn accept_first_move(&mut self) {
-        let last_move = self.moves.last().unwrap();
-        let new_move = Move {
-            fen: last_move.fen.clone(),
-            active_player: 1,
-            ply: last_move.ply, // No move has happened so don't increment the ply count
-            p1_owned: "b".to_string(),
-            p2_owned: "w".to_string(),
-            ..Default::default()
-        };
-        self.moves.push(new_move);
-    }
+    //pub fn accept_first_move(&mut self) {
+    //    let last_move = self.moves.last().unwrap();
+    //    let new_move = Move {
+    //        fen: last_move.fen.clone(),
+    //        active_player: 1,
+    //        ply: last_move.ply, // No move has happened so don't increment the ply count
+    //        p1_owned: "b".to_string(),
+    //        p2_owned: "w".to_string(),
+    //        ..Default::default()
+    //    };
+    //    self.moves.push(new_move);
+    //}
 
-    pub fn reject_first_move(&mut self) {
-        let last_move = self.moves.last().unwrap();
-        let new_move = Move {
-            fen: last_move.fen.clone(),
-            active_player: 2,
-            ply: last_move.ply, // No move has happened so don't increment the ply count
-            p1_owned: "w".to_string(),
-            p2_owned: "b".to_string(),
-            ..Default::default()
-        };
-        self.moves.push(new_move);
-    }
+    //pub fn reject_first_move(&mut self) {
+    //    let last_move = self.moves.last().unwrap();
+    //    let new_move = Move {
+    //        fen: last_move.fen.clone(),
+    //        active_player: 2,
+    //        ply: last_move.ply, // No move has happened so don't increment the ply count
+    //        p1_owned: "w".to_string(),
+    //        p2_owned: "b".to_string(),
+    //        ..Default::default()
+    //    };
+    //    self.moves.push(new_move);
+    //}
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

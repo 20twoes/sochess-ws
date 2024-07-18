@@ -1,5 +1,6 @@
 use crate::chessops::BOARD_WIDTH;
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum File {
@@ -55,6 +56,7 @@ const FILE_IDS: [&str; 16] = [
     "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
 ];
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 #[repr(u8)]
 enum Rank {

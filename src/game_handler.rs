@@ -7,7 +7,6 @@ use std::fmt;
 use crate::chessops;
 use crate::db;
 use crate::game::{Game, GameState, Move};
-use crate::game_rules;
 use crate::user::User;
 
 #[derive(Debug, Serialize)]
@@ -121,8 +120,7 @@ impl GameHandler {
                     };
                     match s.play_move(self, new_move).await {
                         Ok(new_state) => {
-                            // TODO: State won't change until we end the game
-                            //self.state = Some(new_state);
+                            self.state = Some(new_state);
                         }
                         Err(err) => {
                             return Err(err);
@@ -220,7 +218,7 @@ impl HandlerState for Accepted {
         } else {
             let chess_move = chessops::Move::from_san(&new_move.san);
             match pos.play_move(&chess_move) {
-                Ok(mut new_pos) => {
+                Ok(new_pos) => {
                     game.add_move_new(new_pos.to_fen());
                     game.state = GameState::FirstMove;
                     db::save_game_move(&handler.db, &handler.game).await;
@@ -289,18 +287,10 @@ impl HandlerState for InProgress {
             Err(GameHandlerError {
                 message: "Not your turn".to_string(),
             })
-        //} else if !game_rules::is_own_piece(user, game, new_move.clone()) {
-        //    Err(GameHandlerError {
-        //        message: "You do not own or control this piece".to_string(),
-        //    })
-        //} else if !game_rules::is_legal_move(new_move.clone(), current_fen) {
-        //    Err(GameHandlerError {
-        //        message: "Illegal move".to_string(),
-        //    })
         } else {
             let chess_move = chessops::Move::from_san(&new_move.san);
             match pos.play_move(&chess_move) {
-                Ok(mut new_pos) => {
+                Ok(new_pos) => {
                     game.add_move_new(new_pos.to_fen());
                     game.state = GameState::InProgress;
                     db::save_game_move(&handler.db, &handler.game).await;

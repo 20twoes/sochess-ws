@@ -96,7 +96,8 @@ impl Fen {
             while let Some(color) = iter.nth(0) {
                 let role = iter.nth(0).unwrap();
 
-                if color.is_digit(10) { // base 10
+                if color.is_digit(10) {
+                    // base 10
                     // Skip this many spaces
                     let num_skipped: usize =
                         format!("{}{}", color, role).parse().expect("Invalid int");
@@ -197,9 +198,13 @@ mod tests {
 
     #[test]
     fn from_board_works() {
-        let pieces = HashMap::from([
-            (Square::A1, Piece { color: Color::White, role: Role::King }),
-        ]);
+        let pieces = HashMap::from([(
+            Square::A1,
+            Piece {
+                color: Color::White,
+                role: Role::King,
+            },
+        )]);
         let mut board = Board::new();
         board.by_square = pieces;
         assert_eq!(
@@ -207,17 +212,33 @@ mod tests {
             "16/16/16/16/16/16/16/16/16/16/16/16/16/16/16/wk15".to_string(),
         );
 
-        board.by_square = HashMap::from([
-            (Square::A16, Piece { color: Color::White, role: Role::King }),
-        ]);
+        board.by_square = HashMap::from([(
+            Square::A16,
+            Piece {
+                color: Color::White,
+                role: Role::King,
+            },
+        )]);
         assert_eq!(
             Fen::from_board(&board),
             "wk15/16/16/16/16/16/16/16/16/16/16/16/16/16/16/16".to_string(),
         );
 
         board.by_square = HashMap::from([
-            (Square::A16, Piece { color: Color::White, role: Role::King }),
-            (Square::G13, Piece { color: Color::Black, role: Role::Pawn }),
+            (
+                Square::A16,
+                Piece {
+                    color: Color::White,
+                    role: Role::King,
+                },
+            ),
+            (
+                Square::G13,
+                Piece {
+                    color: Color::Black,
+                    role: Role::Pawn,
+                },
+            ),
         ]);
         assert_eq!(
             Fen::from_board(&board),

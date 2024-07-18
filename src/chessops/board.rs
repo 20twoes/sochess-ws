@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::chessops::{BOARD_WIDTH, Bitboard, Color, Move, Piece, Role, Square};
+use crate::chessops::{Bitboard, Color, Move, Piece, Role, Square, BOARD_WIDTH};
 
 #[derive(Debug, PartialEq)]
 pub struct Board {
@@ -136,9 +136,13 @@ mod tests {
         king_loc.set(Square::A1 as usize, true);
 
         let mut board = Board::new();
-        board.by_piece = HashMap::from([
-            (Piece { color: Color::White, role: Role::King }, king_loc),
-        ]);
+        board.by_piece = HashMap::from([(
+            Piece {
+                color: Color::White,
+                role: Role::King,
+            },
+            king_loc,
+        )]);
 
         let move_ = Move {
             color: Color::White,

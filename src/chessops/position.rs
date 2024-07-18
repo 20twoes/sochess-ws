@@ -116,7 +116,10 @@ impl Position {
         self.board.by_square.remove(&new_move.from);
 
         // Add piece on ending square
-        let piece = Piece { color: new_move.color.clone(), role: new_move.role.clone() };
+        let piece = Piece {
+            color: new_move.color.clone(),
+            role: new_move.role.clone(),
+        };
         self.board.by_square.insert(new_move.to.clone(), piece);
 
         self.active_player = self.active_player.next();
