@@ -1,5 +1,7 @@
 use bit_vec::BitVec;
 
+use crate::chessops::{File, Square};
+
 pub const BOARD_WIDTH: usize = 16;
 pub const BOARD_SIZE: usize = BOARD_WIDTH * BOARD_WIDTH;
 
@@ -26,6 +28,17 @@ impl Bitboard {
         Self {
             bv: BitVec::from_elem(BOARD_SIZE, false),
         }
+    }
+
+    pub fn new_clear_file(file: File) -> Self {
+        let mut bv = BitVec::from_elem(BOARD_SIZE, true);
+        let mut index = file as usize;
+        for _ in 0..BOARD_WIDTH {
+            bv.set(index, false);
+            index += BOARD_WIDTH;
+        }
+
+        Self { bv: bv }
     }
 
     pub fn get(&self, i: usize) -> Option<bool> {
@@ -78,6 +91,14 @@ impl Bitboard {
 
     pub fn or(&mut self, other: &Self) -> bool {
         self.bv.or(&other.bv)
+    }
+
+    pub fn and(&mut self, other: &Self) -> bool {
+        self.bv.and(&other.bv)
+    }
+
+    pub fn not(&mut self) {
+        self.bv.negate();
     }
 }
 
@@ -177,5 +198,22 @@ mod tests {
 
         assert_eq!(result, expected);
         assert_eq!(result.len(), BOARD_SIZE);
+    }
+
+    #[test]
+    fn new_clear_file_works() {
+        let bitboard = Bitboard::new_clear_file(File::A);
+        assert!(!bitboard.get(Square::A1 as usize).unwrap());
+        assert!(!bitboard.get(Square::A2 as usize).unwrap());
+        assert!(!bitboard.get(Square::A16 as usize).unwrap());
+        assert!(bitboard.get(Square::B1 as usize).unwrap());
+        assert!(bitboard.get(Square::P16 as usize).unwrap());
+
+        let bitboard = Bitboard::new_clear_file(File::I);
+        assert!(bitboard.get(Square::A1 as usize).unwrap());
+        assert!(bitboard.get(Square::P16 as usize).unwrap());
+        assert!(!bitboard.get(Square::I1 as usize).unwrap());
+        assert!(!bitboard.get(Square::I9 as usize).unwrap());
+        assert!(!bitboard.get(Square::I16 as usize).unwrap());
     }
 }

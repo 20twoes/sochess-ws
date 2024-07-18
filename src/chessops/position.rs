@@ -107,7 +107,37 @@ impl Position {
             return Err(PlayError {});
         }
 
-        if !self.board.is_legal_move(&new_move) {
+        // Collect any colors not controlled by the opponent
+        // This effectively is our own side, meaning, we can't capture
+        // these color pieces.
+        let other_side = match self.active_player {
+            Player::P1 => {
+                let mut other_side_colors = self.p2_controlled.clone();
+                if let Some(c) = &self.p2_owned {
+                    other_side_colors.insert(c.clone());
+                }
+                other_side_colors
+            }
+            Player::P2 => {
+                let mut other_side_colors = self.p1_controlled.clone();
+                if let Some(c) = &self.p1_owned {
+                    other_side_colors.insert(c.clone());
+                }
+                other_side_colors
+            }
+        };
+
+        let own_side = {
+            let mut own_colors = HashSet::new();
+            let all_colors = HashSet::from(Color::all());
+            let tmp = all_colors.difference(&other_side);
+            for c in tmp {
+                own_colors.insert(c.clone());
+            }
+            own_colors
+        };
+
+        if !self.board.is_legal_move(&new_move, &own_side) {
             return Err(PlayError {});
         }
 
@@ -125,16 +155,6 @@ impl Position {
         self.active_player = self.active_player.next();
         self.ply += 1;
         Ok(self)
-        //match self.active_player {
-        //    Player::P1 => {
-        //        match self.p1_owned {
-        //            Some(color) => {
-        //                // Does it match the move color?
-        //            }
-        //        }
-        //    }
-        //    _ => todo!(),
-        //}
     }
 
     pub fn accept_first_move(&mut self) -> &Self {

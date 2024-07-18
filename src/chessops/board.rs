@@ -1,12 +1,16 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use crate::chessops::{Bitboard, Color, Move, Piece, Role, Square, BOARD_WIDTH};
+use crate::chessops::{
+    Bitboard, Color, File, LookupTables, Move, Piece, Role, Square, BOARD_WIDTH,
+};
 
 #[derive(Debug, PartialEq)]
 pub struct Board {
     pub by_square: HashMap<Square, Piece>,
     /// e.g. locations of all white pawns
     pub by_piece: HashMap<Piece, Bitboard>,
+    pub by_color: HashMap<Color, Bitboard>,
+    lookup_tables: LookupTables,
 }
 
 impl Board {
@@ -14,6 +18,8 @@ impl Board {
         Self {
             by_square: HashMap::new(),
             by_piece: HashMap::new(),
+            by_color: HashMap::new(),
+            lookup_tables: LookupTables::new(),
         }
     }
 
@@ -25,27 +31,49 @@ impl Board {
                 self.by_piece
                     .get_mut(&piece)
                     .unwrap()
+                    .set(square.clone() as usize, true);
+            }
+            false => {
+                let mut bitboard = Bitboard::new();
+                bitboard.set(square.clone() as usize, true);
+                self.by_piece.insert(piece.clone(), bitboard);
+            }
+        }
+
+        match self.by_color.contains_key(&piece.color) {
+            true => {
+                self.by_color
+                    .get_mut(&piece.color)
+                    .unwrap()
                     .set(square as usize, true);
             }
             false => {
                 let mut bitboard = Bitboard::new();
                 bitboard.set(square as usize, true);
-                self.by_piece.insert(piece, bitboard);
+                self.by_color.insert(piece.color, bitboard);
             }
         }
     }
 
-    pub fn is_legal_move(&self, move_: &Move) -> bool {
+    pub fn is_legal_move(&self, move_: &Move, own_side: &HashSet<Color>) -> bool {
+        // Construct bitboard for own side's pieces
+        let mut own_side_bitboard = Bitboard::new();
+        for color in own_side {
+            if let Some(bitboard) = self.by_color.get(color) {
+                own_side_bitboard.or(&bitboard);
+            }
+        }
+
         match move_.role {
-            Role::King => self.is_legal_king_move(&move_),
+            Role::King => self.is_legal_king_move(&move_, &own_side_bitboard),
             _ => true,
         }
     }
 
-    fn is_legal_king_move(&self, move_: &Move) -> bool {
+    fn is_legal_king_move(&self, move_: &Move, own_side: &Bitboard) -> bool {
         let piece = move_.to_piece();
         let king_loc = self.by_piece.get(&piece).expect("No king on the board");
-        let valid_moves = compute_king_moves(&king_loc);
+        let valid_moves = compute_king_moves(&king_loc, &own_side, &self.lookup_tables);
         valid_moves.get(move_.to.clone() as usize).unwrap()
     }
 }
@@ -57,16 +85,25 @@ impl Board {
 * 8 K 4
 * 7 6 5
 */
-fn compute_king_moves(king_location: &Bitboard) -> Bitboard {
-    // TODO: Handle cases when the king is on the edge of the board
-    let spot_1 = king_location.shift_right(BOARD_WIDTH - 1);
+fn compute_king_moves(
+    king_location: &Bitboard,
+    own_side: &Bitboard,
+    lookup_tables: &LookupTables,
+) -> Bitboard {
+    let mut king_clip_file_a = king_location.clone();
+    king_clip_file_a.and(&lookup_tables.clear_file[File::A as usize]);
+
+    let mut king_clip_file_p = king_location.clone();
+    king_clip_file_p.and(&lookup_tables.clear_file[File::P as usize]);
+
+    let spot_1 = king_clip_file_a.shift_right(BOARD_WIDTH - 1);
     let spot_2 = king_location.shift_right(BOARD_WIDTH);
-    let spot_3 = king_location.shift_right(BOARD_WIDTH + 1);
-    let spot_4 = king_location.shift_right(1);
-    let spot_5 = king_location.shift_left(BOARD_WIDTH - 1);
+    let spot_3 = king_clip_file_p.shift_right(BOARD_WIDTH + 1);
+    let spot_4 = king_clip_file_p.shift_right(1);
+    let spot_5 = king_clip_file_p.shift_left(BOARD_WIDTH - 1);
     let spot_6 = king_location.shift_left(BOARD_WIDTH);
-    let spot_7 = king_location.shift_left(BOARD_WIDTH + 1);
-    let spot_8 = king_location.shift_left(1);
+    let spot_7 = king_clip_file_a.shift_left(BOARD_WIDTH + 1);
+    let spot_8 = king_clip_file_a.shift_left(1);
 
     let mut king_moves = spot_1.clone();
     king_moves.or(&spot_2);
@@ -76,6 +113,10 @@ fn compute_king_moves(king_location: &Bitboard) -> Bitboard {
     king_moves.or(&spot_6);
     king_moves.or(&spot_7);
     king_moves.or(&spot_8);
+
+    let mut not_own_side = own_side.clone();
+    not_own_side.not();
+    king_moves.and(&not_own_side);
 
     king_moves
 }
@@ -126,7 +167,70 @@ mod tests {
             0b00000000, 0b00000000,
         ]);
 
-        let result = compute_king_moves(&king_loc);
+        let result = compute_king_moves(&king_loc, &Bitboard::new(), &LookupTables::new());
+        assert_eq!(result, expected);
+
+        #[rustfmt::skip]
+        let king_loc = Bitboard::from_bytes(&[
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b10000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+        ]);
+
+        #[rustfmt::skip]
+        let own_side = Bitboard::from_bytes(&[
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b01000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+        ]);
+
+        #[rustfmt::skip]
+        let expected = Bitboard::from_bytes(&[
+            0b00000000, 0b00000000,
+            0b11000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b11000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+        ]);
+
+        let result = compute_king_moves(&king_loc, &own_side, &LookupTables::new());
         assert_eq!(result, expected);
     }
 
@@ -151,7 +255,8 @@ mod tests {
             to: Square::B1,
         };
 
-        assert!(board.is_legal_move(&move_));
+        let own_side = HashSet::from([Color::White]);
+        assert!(board.is_legal_move(&move_, &own_side));
 
         let move_ = Move {
             color: Color::White,
@@ -160,6 +265,6 @@ mod tests {
             to: Square::C1,
         };
 
-        assert!(!board.is_legal_move(&move_));
+        assert!(!board.is_legal_move(&move_, &own_side));
     }
 }

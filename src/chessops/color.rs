@@ -49,6 +49,23 @@ impl Color {
             Self::Yellow => 'y',
         }
     }
+
+    pub fn all() -> [Color; 12] {
+        [
+            Color::Ash,
+            Color::Black,
+            Color::Cyan,
+            Color::Green,
+            Color::Navy,
+            Color::Orange,
+            Color::Pink,
+            Color::Red,
+            Color::Slate,
+            Color::Violet,
+            Color::White,
+            Color::Yellow,
+        ]
+    }
 }
 
 #[cfg(test)]

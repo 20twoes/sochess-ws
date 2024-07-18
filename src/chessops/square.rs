@@ -31,26 +31,30 @@ impl File {
     fn str_to_index(s: &str) -> usize {
         FILE_IDS.iter().position(|&x| x == s).expect("Invalid file")
     }
+
+    pub fn iter() -> impl Iterator<Item = &'static File> {
+        FILE_INDEX.iter()
+    }
 }
 
-//    File::A,
-//const FILE_INDEX: [File; 16] = [
-//    File::B,
-//    File::C,
-//    File::D,
-//    File::E,
-//    File::F,
-//    File::G,
-//    File::H,
-//    File::I,
-//    File::J,
-//    File::K,
-//    File::L,
-//    File::M,
-//    File::N,
-//    File::O,
-//    File::P,
-//];
+const FILE_INDEX: [File; 16] = [
+    File::A,
+    File::B,
+    File::C,
+    File::D,
+    File::E,
+    File::F,
+    File::G,
+    File::H,
+    File::I,
+    File::J,
+    File::K,
+    File::L,
+    File::M,
+    File::N,
+    File::O,
+    File::P,
+];
 
 const FILE_IDS: [&str; 16] = [
     "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
