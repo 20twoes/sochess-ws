@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::chessops::{Board, Color, Piece, Player, Role, Square, BOARD_SIZE, BOARD_WIDTH};
 
@@ -158,6 +158,8 @@ impl Fen {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::collections::HashMap;
 
     #[test]
     fn to_board() {

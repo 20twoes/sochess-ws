@@ -1,6 +1,8 @@
+use std::fmt;
+
 use bit_vec::BitVec;
 
-use crate::chessops::{File, Square};
+use crate::chessops::File;
 
 pub const BOARD_WIDTH: usize = 16;
 pub const BOARD_SIZE: usize = BOARD_WIDTH * BOARD_WIDTH;
@@ -15,6 +17,24 @@ pub const BOARD_SIZE: usize = BOARD_WIDTH * BOARD_WIDTH;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Bitboard {
     bv: BitVec,
+}
+
+impl fmt::Display for Bitboard {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut output = String::new();
+
+        for (i, bit) in self.bv.iter().enumerate() {
+            match bit {
+                true => output.push('1'),
+                false => output.push('0'),
+            }
+            output.push(' '); // Add some spacing
+            if i != 0 && i % BOARD_WIDTH == (BOARD_WIDTH - 1) {
+                output.push('\n');
+            }
+        }
+        write!(f, "Bitboard:\n{}", output)
+    }
 }
 
 impl Bitboard {
@@ -54,8 +74,8 @@ impl Bitboard {
     }
 
     /// Bit shift towards least significant bit (lower index).
-    /// Returns a new Bitboard object.
-    pub fn shift_left(&self, by: usize) -> Self {
+    /// Returning a bool to keep signature the same as `and` `or` operations
+    pub fn shift_left(&mut self, by: usize) -> bool {
         let mut bv = BitVec::from_elem(BOARD_SIZE, false);
         let mut count = 0;
 
@@ -64,12 +84,13 @@ impl Bitboard {
             count += 1;
         }
 
-        Self { bv: bv }
+        self.bv = bv;
+        true
     }
 
     /// Bit shift towards most significant bit (higher index).
-    /// Returns a new Bitboard object.
-    pub fn shift_right(&self, by: usize) -> Self {
+    /// Returning a bool to keep signature the same as `and` `or` operations
+    pub fn shift_right(&mut self, by: usize) -> bool {
         let mut bv = BitVec::with_capacity(BOARD_SIZE);
         let mut iter = self.bv.iter();
 
@@ -86,7 +107,8 @@ impl Bitboard {
             );
         }
 
-        Self { bv: bv }
+        self.bv = bv;
+        true
     }
 
     pub fn or(&mut self, other: &Self) -> bool {
@@ -106,10 +128,12 @@ impl Bitboard {
 mod tests {
     use super::*;
 
+    use crate::chessops::Square;
+
     #[test]
     fn shift_right_works() {
         #[rustfmt::skip]
-        let king_loc = Bitboard::from_bytes(&[
+        let mut king_loc = Bitboard::from_bytes(&[
             0b00000000, 0b00000000,
             0b01000000, 0b00000000,
             0b00000000, 0b00000000,
@@ -147,16 +171,16 @@ mod tests {
             0b00000000, 0b00000000,
         ]);
 
-        let result = king_loc.shift_right(BOARD_WIDTH + 1);
+        king_loc.shift_right(BOARD_WIDTH + 1);
 
-        assert_eq!(result, expected);
-        assert_eq!(result.len(), BOARD_SIZE);
+        assert_eq!(king_loc, expected);
+        assert_eq!(king_loc.len(), BOARD_SIZE);
     }
 
     #[test]
     fn shift_left_works() {
         #[rustfmt::skip]
-        let king_loc = Bitboard::from_bytes(&[
+        let mut king_loc = Bitboard::from_bytes(&[
             0b00000000, 0b00000000,
             0b01000000, 0b00000000,
             0b00000000, 0b00000000,
@@ -194,10 +218,10 @@ mod tests {
             0b00000000, 0b00000000,
         ]);
 
-        let result = king_loc.shift_left(BOARD_WIDTH + 1);
+        king_loc.shift_left(BOARD_WIDTH + 1);
 
-        assert_eq!(result, expected);
-        assert_eq!(result.len(), BOARD_SIZE);
+        assert_eq!(king_loc, expected);
+        assert_eq!(king_loc.len(), BOARD_SIZE);
     }
 
     #[test]

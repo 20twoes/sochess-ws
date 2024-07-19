@@ -250,7 +250,7 @@ mod tests {
     #[test]
     fn play_move_updates_fields() {
         let mut pos = Position::new();
-        let new_move = Move::from_san("WNb01c03");
+        let new_move = Move::from_san("WNf01g03");
         let new_pos = pos.play_move(&new_move).unwrap();
 
         assert_eq!(new_pos.active_player, Player::P2);

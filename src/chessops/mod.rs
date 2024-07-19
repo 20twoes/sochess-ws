@@ -4,6 +4,7 @@ mod color;
 mod fen;
 mod lookup_tables;
 mod move_type;
+mod movegen;
 mod piece;
 mod player;
 mod position;
