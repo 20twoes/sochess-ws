@@ -54,6 +54,16 @@ impl Board {
     }
 
     pub fn is_legal_move(&self, move_: &Move, own_side: &HashSet<Color>) -> bool {
+        let piece = move_.to_piece();
+
+        // Check that starting position is consistent with our current position
+        let _ = self
+            .by_piece
+            .get(&piece)
+            .expect("Corresponing piece is not on the board");
+        let mut start_loc = Bitboard::new();
+        start_loc.set(move_.from.clone() as usize, true);
+
         // Construct bitboard for own side's pieces
         let mut own_side_bitboard = Bitboard::new();
         for color in own_side {
@@ -62,25 +72,22 @@ impl Board {
             }
         }
 
-        match move_.role {
-            Role::King => self.is_legal_king_move(&move_, &own_side_bitboard),
-            Role::Knight => self.is_legal_knight_move(&move_, &own_side_bitboard),
-            _ => true,
-        }
-    }
+        let legal_moves = match move_.role {
+            Role::King => {
+                movegen::compute_king_moves(&start_loc, &own_side_bitboard, &self.lookup_tables)
+            }
+            Role::Knight => {
+                movegen::compute_knight_moves(&start_loc, &own_side_bitboard, &self.lookup_tables)
+            }
+            Role::Rook => {
+                movegen::compute_rook_moves(&start_loc, &own_side_bitboard, &self.lookup_tables)
+            }
+            _ => {
+                return true;
+            }
+        };
 
-    fn is_legal_king_move(&self, move_: &Move, own_side: &Bitboard) -> bool {
-        let piece = move_.to_piece();
-        let king_loc = self.by_piece.get(&piece).expect("No king on the board");
-        let valid_moves = movegen::compute_king_moves(&king_loc, &own_side, &self.lookup_tables);
-        valid_moves.get(move_.to.clone() as usize).unwrap()
-    }
-
-    fn is_legal_knight_move(&self, move_: &Move, own_side: &Bitboard) -> bool {
-        let piece = move_.to_piece();
-        let piece_loc = self.by_piece.get(&piece).expect("No king on the board");
-        let valid_moves = movegen::compute_knight_moves(&piece_loc, &own_side, &self.lookup_tables);
-        valid_moves.get(move_.to.clone() as usize).unwrap()
+        legal_moves.get(move_.to.clone() as usize).unwrap()
     }
 }
 

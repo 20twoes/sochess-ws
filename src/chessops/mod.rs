@@ -21,4 +21,4 @@ pub use piece::Piece;
 pub use player::Player;
 pub use position::Position;
 pub use role::Role;
-pub use square::{File, Square};
+pub use square::{File, Rank, Square};

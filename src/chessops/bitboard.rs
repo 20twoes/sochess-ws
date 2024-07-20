@@ -2,7 +2,7 @@ use std::fmt;
 
 use bit_vec::BitVec;
 
-use crate::chessops::File;
+use crate::chessops::{File, Rank};
 
 pub const BOARD_WIDTH: usize = 16;
 pub const BOARD_SIZE: usize = BOARD_WIDTH * BOARD_WIDTH;
@@ -56,6 +56,28 @@ impl Bitboard {
         for _ in 0..BOARD_WIDTH {
             bv.set(index, false);
             index += BOARD_WIDTH;
+        }
+
+        Self { bv: bv }
+    }
+
+    pub fn new_mask_file(file: File) -> Self {
+        let mut bv = BitVec::from_elem(BOARD_SIZE, false);
+        let mut index = file as usize;
+        for _ in 0..BOARD_WIDTH {
+            bv.set(index, true);
+            index += BOARD_WIDTH;
+        }
+
+        Self { bv: bv }
+    }
+
+    pub fn new_mask_rank(rank: Rank) -> Self {
+        let mut bv = BitVec::from_elem(BOARD_SIZE, false);
+        let start_pos = BOARD_WIDTH * rank as usize;
+        let end_pos = start_pos + BOARD_WIDTH;
+        for i in start_pos..end_pos {
+            bv.set(i, true);
         }
 
         Self { bv: bv }
@@ -121,6 +143,15 @@ impl Bitboard {
 
     pub fn not(&mut self) {
         self.bv.negate();
+    }
+
+    pub fn least_significant_bit(&self) -> Option<usize> {
+        for (i, bit) in self.bv.iter().enumerate() {
+            if bit {
+                return Some(i);
+            }
+        }
+        None
     }
 }
 
@@ -239,5 +270,53 @@ mod tests {
         assert!(!bitboard.get(Square::I1 as usize).unwrap());
         assert!(!bitboard.get(Square::I9 as usize).unwrap());
         assert!(!bitboard.get(Square::I16 as usize).unwrap());
+    }
+
+    #[test]
+    fn new_mask_rank_works() {
+        #[rustfmt::skip]
+        let expected = Bitboard::from_bytes(&[
+            0b11111111, 0b11111111,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+        ]);
+
+        let bitboard = Bitboard::new_mask_rank(Rank::R1);
+        assert_eq!(bitboard, expected);
+
+        #[rustfmt::skip]
+        let expected = Bitboard::from_bytes(&[
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b11111111, 0b11111111,
+        ]);
+        let bitboard = Bitboard::new_mask_rank(Rank::R16);
+        assert_eq!(bitboard, expected);
     }
 }
