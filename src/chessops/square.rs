@@ -1,124 +1,4 @@
-use crate::chessops::BOARD_WIDTH;
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq)]
-#[repr(u8)]
-pub enum File {
-    A = 0,
-    B,
-    C,
-    D,
-    E,
-    F,
-    G,
-    H,
-    I,
-    J,
-    K,
-    L,
-    M,
-    N,
-    O,
-    P,
-}
-
-impl File {
-    //fn from_str(s: &str) -> Self {
-    //    let i = File::str_to_index(s);
-    //    FILE_INDEX[i].clone()
-    //}
-
-    fn str_to_index(s: &str) -> usize {
-        FILE_IDS.iter().position(|&x| x == s).expect("Invalid file")
-    }
-
-    pub fn iter() -> impl Iterator<Item = &'static File> {
-        FILE_INDEX.iter()
-    }
-}
-
-const FILE_INDEX: [File; 16] = [
-    File::A,
-    File::B,
-    File::C,
-    File::D,
-    File::E,
-    File::F,
-    File::G,
-    File::H,
-    File::I,
-    File::J,
-    File::K,
-    File::L,
-    File::M,
-    File::N,
-    File::O,
-    File::P,
-];
-
-const FILE_IDS: [&str; 16] = [
-    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
-];
-
-#[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq)]
-#[repr(u8)]
-pub enum Rank {
-    R1 = 0,
-    R2,
-    R3,
-    R4,
-    R5,
-    R6,
-    R7,
-    R8,
-    R9,
-    R10,
-    R11,
-    R12,
-    R13,
-    R14,
-    R15,
-    R16,
-}
-
-impl Rank {
-    //fn from_str(s: &str) -> Self {
-    //    let i = Rank::str_to_index(s);
-    //    RANK_INDEX[i].clone()
-    //}
-
-    fn str_to_index(s: &str) -> usize {
-        RANK_IDS.iter().position(|&x| x == s).expect("Invalid rank")
-    }
-
-    pub fn iter() -> impl Iterator<Item = &'static Rank> {
-        RANK_INDEX.iter()
-    }
-}
-
-const RANK_INDEX: [Rank; 16] = [
-    Rank::R1,
-    Rank::R2,
-    Rank::R3,
-    Rank::R4,
-    Rank::R5,
-    Rank::R6,
-    Rank::R7,
-    Rank::R8,
-    Rank::R9,
-    Rank::R10,
-    Rank::R11,
-    Rank::R12,
-    Rank::R13,
-    Rank::R14,
-    Rank::R15,
-    Rank::R16,
-];
-
-const RANK_IDS: [&str; 16] = [
-    "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16",
-];
+use crate::chessops::{File, Rank, BOARD_WIDTH};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[repr(u16)]
@@ -396,30 +276,30 @@ impl Square {
         let rank_index = Rank::str_to_index(rank_id);
         let index = Square::calc_index(file_index, rank_index);
 
-        SQUARE_INDEX[index].clone()
+        ALL_SQUARES[index].clone()
     }
 
     pub fn from_file_and_rank_index(file: usize, rank: usize) -> Self {
         let index = Square::calc_index(file, rank);
-        SQUARE_INDEX[index].clone()
+        ALL_SQUARES[index].clone()
     }
 
     pub fn from_index(i: usize) -> Self {
-        SQUARE_INDEX[i].clone()
+        ALL_SQUARES[i].clone()
     }
 
     pub fn file(&self) -> File {
         let i = self.clone() as usize;
-        FILE_INDEX[i % BOARD_WIDTH].clone()
+        File::from_index(i % BOARD_WIDTH)
     }
 
     pub fn rank(&self) -> Rank {
         let i = self.clone() as usize;
-        RANK_INDEX[i / BOARD_WIDTH].clone()
+        Rank::from_index(i / BOARD_WIDTH)
     }
 }
 
-const SQUARE_INDEX: [Square; 256] = [
+const ALL_SQUARES: [Square; 256] = [
     Square::A1,
     Square::B1,
     Square::C1,

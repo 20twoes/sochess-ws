@@ -137,7 +137,7 @@ impl Position {
             own_colors
         };
 
-        if !self.board.is_legal_move(&new_move, &own_side) {
+        if !self.board.is_legal_move(&new_move, &own_side, &other_side) {
             return Err(PlayError {});
         }
 

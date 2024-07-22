@@ -53,7 +53,12 @@ impl Board {
         }
     }
 
-    pub fn is_legal_move(&self, move_: &Move, own_side: &HashSet<Color>) -> bool {
+    pub fn is_legal_move(
+        &self,
+        move_: &Move,
+        own_side: &HashSet<Color>,
+        enemy_side: &HashSet<Color>,
+    ) -> bool {
         let piece = move_.to_piece();
 
         // Check that starting position is consistent with our current position
@@ -72,7 +77,21 @@ impl Board {
             }
         }
 
+        // Construct bitboard for enemy side's pieces
+        let mut enemy_side_bitboard = Bitboard::new();
+        for color in enemy_side {
+            if let Some(bitboard) = self.by_color.get(color) {
+                enemy_side_bitboard.or(&bitboard);
+            }
+        }
+
         let legal_moves = match move_.role {
+            Role::Bishop => movegen::compute_bishop_moves(
+                &start_loc,
+                &own_side_bitboard,
+                &enemy_side_bitboard,
+                &self.lookup_tables,
+            ),
             Role::King => {
                 movegen::compute_king_moves(&start_loc, &own_side_bitboard, &self.lookup_tables)
             }
@@ -117,7 +136,8 @@ mod tests {
         };
 
         let own_side = HashSet::from([Color::White]);
-        assert!(board.is_legal_move(&move_, &own_side));
+        let enemy_side = HashSet::new();
+        assert!(board.is_legal_move(&move_, &own_side, &enemy_side));
 
         let move_ = Move {
             color: Color::White,
@@ -126,6 +146,6 @@ mod tests {
             to: Square::C1,
         };
 
-        assert!(!board.is_legal_move(&move_, &own_side));
+        assert!(!board.is_legal_move(&move_, &own_side, &enemy_side));
     }
 }
