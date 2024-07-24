@@ -293,10 +293,10 @@ impl Square {
         File::from_index(i % BOARD_WIDTH)
     }
 
-    pub fn rank(&self) -> Rank {
-        let i = self.clone() as usize;
-        Rank::from_index(i / BOARD_WIDTH)
-    }
+    //pub fn rank(&self) -> Rank {
+    //    let i = self.clone() as usize;
+    //    Rank::from_index(i / BOARD_WIDTH)
+    //}
 }
 
 const ALL_SQUARES: [Square; 256] = [

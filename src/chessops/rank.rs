@@ -30,9 +30,9 @@ impl Rank {
         RANK_IDS.iter().position(|&x| x == s).expect("Invalid rank")
     }
 
-    pub fn from_index(i: usize) -> Self {
-        ALL_RANKS[i].clone()
-    }
+    //pub fn from_index(i: usize) -> Self {
+    //    ALL_RANKS[i].clone()
+    //}
 
     pub fn iter() -> impl Iterator<Item = &'static Rank> {
         ALL_RANKS.iter()

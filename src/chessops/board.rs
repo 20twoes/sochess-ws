@@ -86,20 +86,30 @@ impl Board {
         }
 
         let legal_moves = match move_.role {
-            Role::Bishop => movegen::compute_bishop_moves(
-                &start_loc,
-                &own_side_bitboard,
-                &enemy_side_bitboard,
-                &self.lookup_tables,
-            ),
+            Role::Bishop => {
+                movegen::compute_bishop_moves(&start_loc, &own_side_bitboard, &enemy_side_bitboard)
+            }
             Role::King => {
                 movegen::compute_king_moves(&start_loc, &own_side_bitboard, &self.lookup_tables)
             }
             Role::Knight => {
                 movegen::compute_knight_moves(&start_loc, &own_side_bitboard, &self.lookup_tables)
             }
+            Role::Queen => {
+                let mut queen_moves = movegen::compute_rook_moves(
+                    &start_loc,
+                    &own_side_bitboard,
+                    &enemy_side_bitboard,
+                );
+                queen_moves.or(&movegen::compute_bishop_moves(
+                    &start_loc,
+                    &own_side_bitboard,
+                    &enemy_side_bitboard,
+                ));
+                queen_moves
+            }
             Role::Rook => {
-                movegen::compute_rook_moves(&start_loc, &own_side_bitboard, &self.lookup_tables)
+                movegen::compute_rook_moves(&start_loc, &own_side_bitboard, &enemy_side_bitboard)
             }
             _ => {
                 return true;

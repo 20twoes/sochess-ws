@@ -1,6 +1,4 @@
-use crate::chessops::{Bitboard, File, LookupTables, Square, BOARD_SIZE, BOARD_WIDTH};
-
-const MAX_RANGE: usize = 7;
+use crate::chessops::{movegen::MAX_RANGE, Bitboard, File, Square, BOARD_SIZE, BOARD_WIDTH};
 
 /**
  * Use directions to specfiy the four different rays of a bishop:
@@ -14,14 +12,12 @@ pub fn compute_bishop_moves(
     start_location: &Bitboard,
     own_side: &Bitboard,
     enemy_pieces: &Bitboard,
-    lookup_tables: &LookupTables,
 ) -> Bitboard {
     let start_index = start_location
         .least_significant_bit()
         .expect("Invalid start location");
     let square = Square::from_index(start_index);
     let file = square.file();
-    //let rank = square.rank();
     let mut legal_moves = Bitboard::new();
 
     // We iterate max MAX_RANGE times, or until we hit the end of the board
@@ -62,10 +58,6 @@ pub fn compute_bishop_moves(
     legal_moves.or(&northwest_ray);
     legal_moves.or(&southwest_ray);
     legal_moves.or(&southeast_ray);
-
-    let mut not_own_side = own_side.clone();
-    not_own_side.not();
-    legal_moves.and(&not_own_side);
 
     legal_moves
 }
@@ -194,12 +186,7 @@ mod tests {
             0b00000000, 0b00000000,
         ]);
 
-        let result = compute_bishop_moves(
-            &start_loc,
-            &Bitboard::new(),
-            &Bitboard::new(),
-            &LookupTables::new(),
-        );
+        let result = compute_bishop_moves(&start_loc, &Bitboard::new(), &Bitboard::new());
 
         assert_eq!(result, expected);
 
@@ -264,12 +251,7 @@ mod tests {
             0b00000000, 0b00000000,
         ]);
 
-        let result = compute_bishop_moves(
-            &start_loc,
-            &own_side,
-            &Bitboard::new(),
-            &LookupTables::new(),
-        );
+        let result = compute_bishop_moves(&start_loc, &own_side, &Bitboard::new());
 
         assert_eq!(result, expected);
 
@@ -334,12 +316,7 @@ mod tests {
             0b00000000, 0b00000000,
         ]);
 
-        let result = compute_bishop_moves(
-            &start_loc,
-            &Bitboard::new(),
-            &enemy_pieces,
-            &LookupTables::new(),
-        );
+        let result = compute_bishop_moves(&start_loc, &Bitboard::new(), &enemy_pieces);
 
         assert_eq!(result, expected);
 
@@ -383,12 +360,7 @@ mod tests {
             0b00000000, 0b10000010,
         ]);
 
-        let result = compute_bishop_moves(
-            &start_loc,
-            &Bitboard::new(),
-            &Bitboard::new(),
-            &LookupTables::new(),
-        );
+        let result = compute_bishop_moves(&start_loc, &Bitboard::new(), &Bitboard::new());
         println!("result:\n{}", result);
         println!("expected:\n{}", expected);
 
