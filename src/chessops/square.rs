@@ -288,6 +288,10 @@ impl Square {
         ALL_SQUARES[i].clone()
     }
 
+    pub fn to_index(&self) -> usize {
+        self.clone() as usize
+    }
+
     pub fn file(&self) -> File {
         let i = self.clone() as usize;
         File::from_index(i % BOARD_WIDTH)

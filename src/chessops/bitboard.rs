@@ -2,7 +2,7 @@ use std::fmt;
 
 use bit_vec::BitVec;
 
-use crate::chessops::{File, Rank};
+use crate::chessops::{File, Quadrant, Rank};
 
 pub const BOARD_WIDTH: usize = 16;
 pub const BOARD_SIZE: usize = BOARD_WIDTH * BOARD_WIDTH;
@@ -61,6 +61,17 @@ impl Bitboard {
         Self { bv: bv }
     }
 
+    pub fn new_clear_rank(rank: Rank) -> Self {
+        let mut bv = BitVec::from_elem(BOARD_SIZE, true);
+        let start_pos = BOARD_WIDTH * rank as usize;
+        let end_pos = start_pos + BOARD_WIDTH;
+        for i in start_pos..end_pos {
+            bv.set(i, false);
+        }
+
+        Self { bv: bv }
+    }
+
     pub fn new_mask_file(file: File) -> Self {
         let mut bv = BitVec::from_elem(BOARD_SIZE, false);
         let mut index = file as usize;
@@ -79,6 +90,41 @@ impl Bitboard {
         for i in start_pos..end_pos {
             bv.set(i, true);
         }
+
+        Self { bv: bv }
+    }
+
+    pub fn new_mask_quadrant(quadrant: Quadrant) -> Self {
+        let bv = match quadrant {
+            Quadrant::SW => BitVec::from_bytes(&[
+                0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111,
+                0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000,
+                0b11111111, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                0b00000000, 0b00000000, 0b00000000, 0b00000000,
+            ]),
+            Quadrant::SE => BitVec::from_bytes(&[
+                0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000,
+                0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111,
+                0b00000000, 0b11111111, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                0b00000000, 0b00000000, 0b00000000, 0b00000000,
+            ]),
+            Quadrant::NW => BitVec::from_bytes(&[
+                0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                0b00000000, 0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111,
+                0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000,
+                0b11111111, 0b00000000, 0b11111111, 0b00000000,
+            ]),
+            Quadrant::NE => BitVec::from_bytes(&[
+                0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                0b00000000, 0b00000000, 0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000,
+                0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111, 0b00000000, 0b11111111,
+                0b00000000, 0b11111111, 0b00000000, 0b11111111,
+            ]),
+        };
 
         Self { bv: bv }
     }
@@ -152,6 +198,10 @@ impl Bitboard {
             }
         }
         None
+    }
+
+    pub fn any(&self) -> bool {
+        self.bv.any()
     }
 }
 

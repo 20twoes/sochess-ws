@@ -8,6 +8,7 @@ pub struct Board {
     /// e.g. locations of all white pawns
     pub by_piece: HashMap<Piece, Bitboard>,
     pub by_color: HashMap<Color, Bitboard>,
+    all_pieces: Bitboard,
     lookup_tables: LookupTables,
 }
 
@@ -17,12 +18,14 @@ impl Board {
             by_square: HashMap::new(),
             by_piece: HashMap::new(),
             by_color: HashMap::new(),
+            all_pieces: Bitboard::new(),
             lookup_tables: LookupTables::new(),
         }
     }
 
     pub fn insert_piece(&mut self, square: Square, piece: Piece) {
         self.by_square.insert(square.clone(), piece.clone());
+        self.all_pieces.set(square.to_index(), true);
 
         match self.by_piece.contains_key(&piece) {
             true => {
@@ -95,6 +98,12 @@ impl Board {
             Role::Knight => {
                 movegen::compute_knight_moves(&start_loc, &own_side_bitboard, &self.lookup_tables)
             }
+            Role::Pawn => movegen::compute_pawn_moves(
+                &start_loc,
+                &self.all_pieces,
+                &enemy_side_bitboard,
+                &self.lookup_tables,
+            ),
             Role::Queen => {
                 let mut queen_moves = movegen::compute_rook_moves(
                     &start_loc,
@@ -110,9 +119,6 @@ impl Board {
             }
             Role::Rook => {
                 movegen::compute_rook_moves(&start_loc, &own_side_bitboard, &enemy_side_bitboard)
-            }
-            _ => {
-                return true;
             }
         };
 

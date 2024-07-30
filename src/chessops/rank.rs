@@ -37,6 +37,10 @@ impl Rank {
     pub fn iter() -> impl Iterator<Item = &'static Rank> {
         ALL_RANKS.iter()
     }
+
+    pub fn to_index(&self) -> usize {
+        self.clone() as usize
+    }
 }
 
 const ALL_RANKS: [Rank; 16] = [
