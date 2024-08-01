@@ -6,7 +6,7 @@ use std::fmt;
 
 use crate::chessops;
 use crate::db;
-use crate::game::{Game, GameState, Move};
+use crate::game::{Game, GameState};
 use crate::user::User;
 
 #[derive(Debug, Serialize)]
@@ -75,14 +75,11 @@ impl GameHandler {
             }
             Some("first_move") => {
                 if let Some(s) = self.state.take() {
-                    let new_move = Move {
-                        san: json["d"]["san"]
-                            .as_str()
-                            .expect("Cannot find SAN in data object")
-                            .to_string(),
-                        ..Default::default()
-                    };
-                    match s.play_first_move(self, new_move).await {
+                    let san = json["d"]["san"]
+                        .as_str()
+                        .expect("Cannot find SAN in data object")
+                        .to_string();
+                    match s.play_first_move(self, san).await {
                         Ok(new_state) => {
                             self.state = Some(new_state);
                         }
@@ -111,14 +108,11 @@ impl GameHandler {
             }
             Some("move") => {
                 if let Some(s) = self.state.take() {
-                    let new_move = Move {
-                        san: json["d"]["san"]
-                            .as_str()
-                            .expect("Cannot find SAN in data object")
-                            .to_string(),
-                        ..Default::default()
-                    };
-                    match s.play_move(self, new_move).await {
+                    let san = json["d"]["san"]
+                        .as_str()
+                        .expect("Cannot find SAN in data object")
+                        .to_string();
+                    match s.play_move(self, san).await {
                         Ok(new_state) => {
                             self.state = Some(new_state);
                         }
@@ -152,7 +146,7 @@ trait HandlerState {
     async fn play_first_move(
         &self,
         handler: &mut GameHandler,
-        new_move: Move,
+        san: String,
     ) -> Result<Box<FirstMove>, GameHandlerError> {
         Err(GameHandlerError {
             message: "Forbidden game action".to_string(),
@@ -174,7 +168,7 @@ trait HandlerState {
     async fn play_move(
         &self,
         handler: &mut GameHandler,
-        new_move: Move,
+        san: String,
     ) -> Result<Box<InProgress>, GameHandlerError> {
         Err(GameHandlerError {
             message: "Forbidden game action".to_string(),
@@ -204,22 +198,22 @@ impl HandlerState for Accepted {
     async fn play_first_move(
         &self,
         handler: &mut GameHandler,
-        new_move: Move,
+        san: String,
     ) -> Result<Box<FirstMove>, GameHandlerError> {
         let game = &mut handler.game;
         let user = &handler.user;
         let current_fen = game.moves.last().unwrap().fen.clone();
         let mut pos = chessops::Position::from_fen(current_fen.clone());
 
-        if !game.is_users_turn_new(pos.active_player(), user) {
+        if !game.is_users_turn(pos.active_player(), user) {
             Err(GameHandlerError {
                 message: "Not your turn".to_string(),
             })
         } else {
-            let chess_move = chessops::Move::from_san(&new_move.san);
+            let chess_move = chessops::Move::from_san(&san);
             match pos.play_move(&chess_move) {
                 Ok(new_pos) => {
-                    game.add_move_new(new_pos.to_fen());
+                    game.add_move(new_pos.to_fen(), san.clone());
                     game.state = GameState::FirstMove;
                     db::save_game_move(&handler.db, &handler.game).await;
 
@@ -246,7 +240,7 @@ impl HandlerState for FirstMove {
         let mut pos = chessops::Position::from_fen(current_fen.clone());
 
         // Only player2 can make this choice
-        if !game.is_users_turn_new(pos.active_player(), user) {
+        if !game.is_users_turn(pos.active_player(), user) {
             return Err(GameHandlerError {
                 message: "Not your turn to make this choice".to_string(),
             });
@@ -264,7 +258,8 @@ impl HandlerState for FirstMove {
 
         // Save game move
         game.state = GameState::InProgress;
-        game.add_move_new(new_pos.to_fen());
+        let san = format!("action:{}", choice);
+        game.add_move(new_pos.to_fen(), san);
         db::save_game_move(&handler.db, &handler.game).await;
 
         Ok(Box::new(InProgress {}))
@@ -276,22 +271,22 @@ impl HandlerState for InProgress {
     async fn play_move(
         &self,
         handler: &mut GameHandler,
-        new_move: Move,
+        san: String,
     ) -> Result<Box<InProgress>, GameHandlerError> {
         let game = &mut handler.game;
         let user = &handler.user;
         let current_fen = game.moves.last().unwrap().fen.clone();
         let mut pos = chessops::Position::from_fen(current_fen.clone());
 
-        if !game.is_users_turn_new(pos.active_player(), user) {
+        if !game.is_users_turn(pos.active_player(), user) {
             Err(GameHandlerError {
                 message: "Not your turn".to_string(),
             })
         } else {
-            let chess_move = chessops::Move::from_san(&new_move.san);
+            let chess_move = chessops::Move::from_san(&san);
             match pos.play_move(&chess_move) {
                 Ok(new_pos) => {
-                    game.add_move_new(new_pos.to_fen());
+                    game.add_move(new_pos.to_fen(), san.clone());
                     game.state = GameState::InProgress;
                     db::save_game_move(&handler.db, &handler.game).await;
 
