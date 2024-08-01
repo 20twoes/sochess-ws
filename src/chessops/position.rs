@@ -142,15 +142,14 @@ impl Position {
         }
 
         // Update Board
-        // Remove piece on starting square
         self.board.by_square.remove(&new_move.from);
-
-        // Add piece on ending square
         let piece = Piece {
             color: new_move.color.clone(),
             role: new_move.role.clone(),
         };
         self.board.by_square.insert(new_move.to.clone(), piece);
+
+        self.update_controlled_armies(new_move);
 
         self.active_player = self.active_player.next();
         self.ply += 1;
@@ -191,6 +190,31 @@ impl Position {
                     true
                 } else {
                     false
+                }
+            }
+        }
+    }
+
+    fn update_controlled_armies(&mut self, move_: &Move) {
+        match self.active_player {
+            Player::P1 => {
+                if let Some(color) = move_.from.color() {
+                    self.p1_controlled.remove(&color);
+                }
+                if let Some(color) = move_.to.color() {
+                    if Some(color) != self.p2_owned {
+                        self.p1_controlled.insert(color);
+                    }
+                }
+            }
+            Player::P2 => {
+                if let Some(color) = move_.from.color() {
+                    self.p2_controlled.remove(&color);
+                }
+                if let Some(color) = move_.to.color() {
+                    if Some(color) != self.p1_owned {
+                        self.p2_controlled.insert(color);
+                    }
                 }
             }
         }

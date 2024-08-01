@@ -10,6 +10,7 @@ pub struct Board {
     pub by_color: HashMap<Color, Bitboard>,
     all_pieces: Bitboard,
     lookup_tables: LookupTables,
+    occupied_colored_squares: HashSet<Color>,
 }
 
 impl Board {
@@ -20,6 +21,7 @@ impl Board {
             by_color: HashMap::new(),
             all_pieces: Bitboard::new(),
             lookup_tables: LookupTables::new(),
+            occupied_colored_squares: HashSet::new(),
         }
     }
 
@@ -32,11 +34,11 @@ impl Board {
                 self.by_piece
                     .get_mut(&piece)
                     .unwrap()
-                    .set(square.clone() as usize, true);
+                    .set(square.to_index(), true);
             }
             false => {
                 let mut bitboard = Bitboard::new();
-                bitboard.set(square.clone() as usize, true);
+                bitboard.set(square.to_index(), true);
                 self.by_piece.insert(piece.clone(), bitboard);
             }
         }
@@ -46,13 +48,17 @@ impl Board {
                 self.by_color
                     .get_mut(&piece.color)
                     .unwrap()
-                    .set(square as usize, true);
+                    .set(square.to_index(), true);
             }
             false => {
                 let mut bitboard = Bitboard::new();
-                bitboard.set(square as usize, true);
+                bitboard.set(square.to_index(), true);
                 self.by_color.insert(piece.color, bitboard);
             }
+        }
+
+        if let Some(color) = square.clone().color() {
+            self.occupied_colored_squares.insert(color);
         }
     }
 
@@ -88,7 +94,7 @@ impl Board {
             }
         }
 
-        let legal_moves = match move_.role {
+        let mut legal_moves = match move_.role {
             Role::Bishop => {
                 movegen::compute_bishop_moves(&start_loc, &own_side_bitboard, &enemy_side_bitboard)
             }
@@ -122,7 +128,31 @@ impl Board {
             }
         };
 
-        legal_moves.get(move_.to.clone() as usize).unwrap()
+        // Only one square of each color may be occupied at a time
+        let mut legal_colored_squares_mask = self.build_colored_squares_mask();
+        // Allow capturing a piece on a colored square
+        legal_colored_squares_mask.or(&enemy_side_bitboard);
+        legal_moves.and(&legal_colored_squares_mask);
+
+        // No piece may move onto a square of its own color
+        legal_moves.and(
+            &self
+                .lookup_tables
+                .clear_colored_squares
+                .get(&move_.color)
+                .unwrap(),
+        );
+
+        legal_moves.get(move_.to.to_index()).unwrap()
+    }
+
+    /// Return a bitboard with valid moves to legal colored squares
+    pub fn build_colored_squares_mask(&self) -> Bitboard {
+        let mut valid_squares = Bitboard::new_full();
+        for color in &self.occupied_colored_squares {
+            valid_squares.and(&self.lookup_tables.clear_colored_squares.get(color).unwrap());
+        }
+        valid_squares
     }
 }
 
@@ -162,6 +192,80 @@ mod tests {
             to: Square::C1,
         };
 
+        assert!(!board.is_legal_move(&move_, &own_side, &enemy_side));
+    }
+
+    #[test]
+    fn is_legal_move_should_disallow_move_onto_occupied_colored_square() {
+        let mut board = Board::new();
+        // On Navy colored square
+        board.insert_piece(
+            Square::E5,
+            Piece {
+                color: Color::White,
+                role: Role::Queen,
+            },
+        );
+        // About to try and go into the other Navy square
+        board.insert_piece(
+            Square::L13,
+            Piece {
+                color: Color::Black,
+                role: Role::Queen,
+            },
+        );
+        // Will try to capture Queen on Navy square
+        board.insert_piece(
+            Square::E6,
+            Piece {
+                color: Color::Black,
+                role: Role::Rook,
+            },
+        );
+
+        let move_ = Move {
+            color: Color::Black,
+            role: Role::Queen,
+            from: Square::L13,
+            to: Square::L12,
+        };
+
+        let own_side = HashSet::from([Color::Black]);
+        let enemy_side = HashSet::from([Color::White]);
+        assert!(!board.is_legal_move(&move_, &own_side, &enemy_side));
+
+        // But should be able to capture a piece that is on a colored square
+        let move_ = Move {
+            color: Color::Black,
+            role: Role::Rook,
+            from: Square::E6,
+            to: Square::E5,
+        };
+
+        assert!(board.is_legal_move(&move_, &own_side, &enemy_side));
+    }
+
+    #[test]
+    fn is_legal_move_should_disallow_moving_to_a_square_of_own_color() {
+        let mut board = Board::new();
+        // On Navy colored square
+        board.insert_piece(
+            Square::I3,
+            Piece {
+                color: Color::White,
+                role: Role::Queen,
+            },
+        );
+
+        let move_ = Move {
+            color: Color::White,
+            role: Role::Queen,
+            from: Square::I3,
+            to: Square::I8,
+        };
+
+        let own_side = HashSet::from([Color::White]);
+        let enemy_side = HashSet::from([Color::Black]);
         assert!(!board.is_legal_move(&move_, &own_side, &enemy_side));
     }
 }

@@ -23,12 +23,17 @@ pub fn compute_rook_moves(
     let iter_limit_eastern = std::cmp::min(num_files_to_edge, MAX_RANGE);
     let iter_limit_western = std::cmp::min(file.to_index(), MAX_RANGE);
 
-    let northern_ray =
-        compute_northern_ray(start_index.clone(), MAX_RANGE, 1, own_side, enemy_side);
+    let northern_ray = compute_northern_ray(
+        start_index.clone(),
+        MAX_RANGE,
+        BOARD_WIDTH,
+        own_side,
+        enemy_side,
+    );
     let eastern_ray = compute_northern_ray(
         start_index.clone(),
         iter_limit_eastern,
-        BOARD_WIDTH,
+        1,
         own_side,
         enemy_side,
     );
@@ -373,6 +378,52 @@ mod tests {
         ]);
 
         let result = compute_rook_moves(&start_loc, &Bitboard::new(), &Bitboard::new());
+        assert_eq!(result, expected);
+
+        // In NE quadrant
+        #[rustfmt::skip]
+        let start_loc = Bitboard::from_bytes(&[
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+        ]);
+
+        #[rustfmt::skip]
+        let expected = Bitboard::from_bytes(&[
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00010000,
+            0b00001111, 0b11101111,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00010000,
+        ]);
+
+        let result = compute_rook_moves(&start_loc, &Bitboard::new(), &Bitboard::new());
+        println!("result:\n{}", result);
+        println!("expected:\n{}", expected);
         assert_eq!(result, expected);
     }
 }

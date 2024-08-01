@@ -1,6 +1,6 @@
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Color {
-    Ash,
+    Ash, // Light grey
     Black,
     Cyan,
     Green,
@@ -8,7 +8,7 @@ pub enum Color {
     Orange,
     Pink,
     Red,
-    Slate,
+    Slate, // Dark grey
     Violet,
     White,
     Yellow,

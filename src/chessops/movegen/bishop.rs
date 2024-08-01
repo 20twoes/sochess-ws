@@ -361,9 +361,54 @@ mod tests {
         ]);
 
         let result = compute_bishop_moves(&start_loc, &Bitboard::new(), &Bitboard::new());
+
+        assert_eq!(result, expected);
+
+        // In another quadrant
+        #[rustfmt::skip]
+        let start_loc = Bitboard::from_bytes(&[
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00010000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+        ]);
+
+        #[rustfmt::skip]
+        let expected = Bitboard::from_bytes(&[
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00000000,
+            0b00001000, 0b00000000,
+            0b00000100, 0b00000000,
+            0b00000010, 0b00000000,
+            0b00000001, 0b00000001,
+            0b00000000, 0b10000010,
+            0b00000000, 0b01000100,
+            0b00000000, 0b00101000,
+            0b00000000, 0b00000000,
+            0b00000000, 0b00101000,
+            0b00000000, 0b01000100,
+            0b00000000, 0b10000010,
+        ]);
+
+        let result = compute_bishop_moves(&start_loc, &Bitboard::new(), &Bitboard::new());
+
         println!("result:\n{}", result);
         println!("expected:\n{}", expected);
-
         assert_eq!(result, expected);
     }
 }

@@ -14,7 +14,7 @@ mod rank;
 mod role;
 mod square;
 
-pub use bitboard::{Bitboard, BOARD_SIZE, BOARD_WIDTH};
+pub use bitboard::Bitboard;
 pub use board::Board;
 pub use color::Color;
 pub use fen::Fen;
@@ -28,3 +28,6 @@ pub use quadrant::Quadrant;
 pub use rank::Rank;
 pub use role::Role;
 pub use square::Square;
+
+pub const BOARD_WIDTH: usize = 16;
+pub const BOARD_SIZE: usize = BOARD_WIDTH * BOARD_WIDTH;

@@ -2,10 +2,7 @@ use std::fmt;
 
 use bit_vec::BitVec;
 
-use crate::chessops::{File, Quadrant, Rank};
-
-pub const BOARD_WIDTH: usize = 16;
-pub const BOARD_SIZE: usize = BOARD_WIDTH * BOARD_WIDTH;
+use crate::chessops::{File, Quadrant, Rank, BOARD_SIZE, BOARD_WIDTH};
 
 /**
  * Bitboard for 256 square Sovereign Chess board.
@@ -47,6 +44,12 @@ impl Bitboard {
     pub fn new() -> Self {
         Self {
             bv: BitVec::from_elem(BOARD_SIZE, false),
+        }
+    }
+
+    pub fn new_full() -> Self {
+        Self {
+            bv: BitVec::from_elem(BOARD_SIZE, true),
         }
     }
 

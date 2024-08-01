@@ -1,4 +1,4 @@
-use crate::chessops::{File, Rank, BOARD_WIDTH};
+use crate::chessops::{Color, File, Rank, BOARD_SIZE, BOARD_WIDTH};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[repr(u16)]
@@ -301,9 +301,46 @@ impl Square {
     //    let i = self.clone() as usize;
     //    Rank::from_index(i / BOARD_WIDTH)
     //}
+
+    pub fn color(&self) -> Option<Color> {
+        COLORED_SQUARES[self.to_index()]
+    }
 }
 
-const ALL_SQUARES: [Square; 256] = [
+const fn init_colored_squares() -> [Option<Color>; BOARD_SIZE] {
+    let mut arr = [None; BOARD_SIZE];
+
+    arr[Square::E5 as usize] = Some(Color::Navy);
+    arr[Square::L12 as usize] = Some(Color::Navy);
+    arr[Square::L5 as usize] = Some(Color::Red);
+    arr[Square::E12 as usize] = Some(Color::Red);
+    arr[Square::F6 as usize] = Some(Color::Green);
+    arr[Square::K11 as usize] = Some(Color::Green);
+    arr[Square::H6 as usize] = Some(Color::Violet);
+    arr[Square::I11 as usize] = Some(Color::Violet);
+    arr[Square::I6 as usize] = Some(Color::Pink);
+    arr[Square::H11 as usize] = Some(Color::Pink);
+    arr[Square::K6 as usize] = Some(Color::Yellow);
+    arr[Square::F11 as usize] = Some(Color::Yellow);
+    arr[Square::G7 as usize] = Some(Color::Ash);
+    arr[Square::J10 as usize] = Some(Color::Ash);
+    arr[Square::J7 as usize] = Some(Color::Slate);
+    arr[Square::G10 as usize] = Some(Color::Slate);
+    arr[Square::F8 as usize] = Some(Color::Cyan);
+    arr[Square::K9 as usize] = Some(Color::Cyan);
+    arr[Square::H8 as usize] = Some(Color::Black);
+    arr[Square::I9 as usize] = Some(Color::Black);
+    arr[Square::I8 as usize] = Some(Color::White);
+    arr[Square::H9 as usize] = Some(Color::White);
+    arr[Square::K8 as usize] = Some(Color::Orange);
+    arr[Square::F9 as usize] = Some(Color::Orange);
+
+    arr
+}
+
+const COLORED_SQUARES: [Option<Color>; BOARD_SIZE] = init_colored_squares();
+
+const ALL_SQUARES: [Square; BOARD_SIZE] = [
     Square::A1,
     Square::B1,
     Square::C1,
@@ -595,5 +632,10 @@ mod tests {
         assert_eq!(Square::N14.file(), File::N);
         assert_eq!(Square::O15.file(), File::O);
         assert_eq!(Square::P16.file(), File::P);
+    }
+
+    #[test]
+    fn square_color_works() {
+        assert_eq!(Square::E5.color(), Some(Color::Navy));
     }
 }
