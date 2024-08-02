@@ -62,6 +62,36 @@ impl Board {
         }
     }
 
+    pub fn remove_piece(&mut self, piece: Piece) {
+        // Look up square that piece is located on
+        let loc = self.by_piece.get_mut(&piece).unwrap();
+        let index = loc
+            .least_significant_bit()
+            .expect("Invalid bitboard location");
+        let square = Square::from_index(index);
+
+        // Create a mask to clear the piece's location
+        let mut mask = loc.clone();
+        mask.not();
+
+        self.by_square.remove(&square);
+        self.by_piece.remove(&piece);
+
+        let color_loc = self.by_color.get_mut(&piece.color).unwrap();
+        color_loc.and(&mask);
+
+        self.all_pieces.and(&mask);
+
+        if let Some(color) = square.color() {
+            self.occupied_colored_squares.remove(&color);
+        }
+    }
+
+    #[cfg(test)]
+    pub fn get(&self, square: Square) -> Option<&Piece> {
+        self.by_square.get(&square)
+    }
+
     pub fn is_legal_move(
         &self,
         move_: &Move,
@@ -174,23 +204,13 @@ mod tests {
             king_loc,
         )]);
 
-        let move_ = Move {
-            color: Color::White,
-            role: Role::King,
-            from: Square::A1,
-            to: Square::B1,
-        };
+        let move_ = Move::new(Color::White, Role::King, Square::A1, Square::B1);
 
         let own_side = HashSet::from([Color::White]);
         let enemy_side = HashSet::new();
         assert!(board.is_legal_move(&move_, &own_side, &enemy_side));
 
-        let move_ = Move {
-            color: Color::White,
-            role: Role::King,
-            from: Square::A1,
-            to: Square::C1,
-        };
+        let move_ = Move::new(Color::White, Role::King, Square::A1, Square::C1);
 
         assert!(!board.is_legal_move(&move_, &own_side, &enemy_side));
     }
@@ -223,24 +243,14 @@ mod tests {
             },
         );
 
-        let move_ = Move {
-            color: Color::Black,
-            role: Role::Queen,
-            from: Square::L13,
-            to: Square::L12,
-        };
+        let move_ = Move::new(Color::Black, Role::Queen, Square::L13, Square::L12);
 
         let own_side = HashSet::from([Color::Black]);
         let enemy_side = HashSet::from([Color::White]);
         assert!(!board.is_legal_move(&move_, &own_side, &enemy_side));
 
         // But should be able to capture a piece that is on a colored square
-        let move_ = Move {
-            color: Color::Black,
-            role: Role::Rook,
-            from: Square::E6,
-            to: Square::E5,
-        };
+        let move_ = Move::new(Color::Black, Role::Rook, Square::E6, Square::E5);
 
         assert!(board.is_legal_move(&move_, &own_side, &enemy_side));
     }
@@ -257,15 +267,35 @@ mod tests {
             },
         );
 
-        let move_ = Move {
-            color: Color::White,
-            role: Role::Queen,
-            from: Square::I3,
-            to: Square::I8,
-        };
+        let move_ = Move::new(Color::White, Role::Queen, Square::I3, Square::I8);
 
         let own_side = HashSet::from([Color::White]);
         let enemy_side = HashSet::from([Color::Black]);
         assert!(!board.is_legal_move(&move_, &own_side, &enemy_side));
+    }
+
+    #[test]
+    fn remove_piece_works() {
+        let mut board = Board::new();
+        let color = Color::Pink;
+        let piece = Piece::new(color.clone(), Role::King);
+        let square = Square::E5;
+
+        board.insert_piece(square.clone(), piece.clone());
+        board.remove_piece(piece.clone());
+
+        assert!(board.get(square.clone()).is_none());
+        assert!(board.by_square.get(&square).is_none());
+        assert!(board.by_piece.get(&piece).is_none());
+        assert!(!board
+            .by_color
+            .get(&color)
+            .unwrap()
+            .get(square.to_index())
+            .unwrap());
+        assert!(!board.all_pieces.get(square.to_index()).unwrap());
+        assert!(!board
+            .occupied_colored_squares
+            .contains(&square.color().unwrap()));
     }
 }

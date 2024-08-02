@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::chessops::{Board, Color, Fen, Move, Piece, Player};
+use crate::chessops::{Board, Color, Fen, Move, Piece, Player, Role};
 
 const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq 1 - - - - 0";
 
@@ -23,6 +23,7 @@ impl Position {
         String::from(INITIAL_FEN)
     }
 
+    #[cfg(test)]
     pub fn new() -> Self {
         Self::from_fen(Self::new_fen())
     }
@@ -141,19 +142,48 @@ impl Position {
             return Err(PlayError {});
         }
 
-        // Update Board
-        self.board.by_square.remove(&new_move.from);
-        let piece = Piece {
-            color: new_move.color.clone(),
-            role: new_move.role.clone(),
-        };
-        self.board.by_square.insert(new_move.to.clone(), piece);
+        self.update_board(new_move);
 
         self.update_controlled_armies(new_move);
 
         self.active_player = self.active_player.next();
         self.ply += 1;
         Ok(self)
+    }
+
+    pub fn update_board(&mut self, move_: &Move) {
+        self.board.by_square.remove(&move_.from);
+
+        let role = if let Some(role) = &move_.promotion {
+            if *role == Role::King {
+                // Remove existing King since we're promoting to a new King
+                match self.active_player {
+                    Player::P1 => {
+                        self.board.remove_piece(Piece::new(
+                            self.p1_owned.expect("p1_owned should not be None"),
+                            Role::King,
+                        ));
+                    }
+                    Player::P2 => {
+                        self.board.remove_piece(Piece::new(
+                            self.p2_owned.expect("p2_owned should not be None"),
+                            Role::King,
+                        ));
+                    }
+                }
+            }
+
+            role
+        } else {
+            &move_.role
+        };
+
+        let piece = Piece {
+            color: move_.color.clone(),
+            role: role.clone(),
+        };
+
+        self.board.by_square.insert(move_.to.clone(), piece);
     }
 
     pub fn accept_first_move(&mut self) -> &Self {

@@ -35,6 +35,7 @@ impl fmt::Display for Bitboard {
 }
 
 impl Bitboard {
+    #[cfg(test)]
     pub fn from_bytes(bytes: &[u8]) -> Self {
         Self {
             bv: BitVec::from_bytes(bytes),
@@ -136,6 +137,7 @@ impl Bitboard {
         self.bv.get(i)
     }
 
+    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.bv.len()
     }

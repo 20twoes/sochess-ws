@@ -7,6 +7,13 @@ pub struct Piece {
 }
 
 impl Piece {
+    pub fn new(color: Color, role: Role) -> Self {
+        Self {
+            color: color,
+            role: role,
+        }
+    }
+
     pub fn to_string(&self) -> String {
         format!("{}{}", self.color.to_char(), self.role.to_char())
     }
