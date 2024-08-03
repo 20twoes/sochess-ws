@@ -123,6 +123,20 @@ impl GameHandler {
                 }
                 Ok(())
             }
+            Some("defect") => {
+                if let Some(s) = self.state.take() {
+                    let color = json["d"].as_str().expect("Cannot find color to defect to");
+                    match s.defect_to(self, color).await {
+                        Ok(new_state) => {
+                            self.state = Some(new_state);
+                        }
+                        Err(err) => {
+                            return Err(err);
+                        }
+                    }
+                }
+                Ok(())
+            }
             _ => Err(GameHandlerError {
                 message: "Invalid message type".to_string(),
             }),
@@ -169,6 +183,17 @@ trait HandlerState {
         &self,
         handler: &mut GameHandler,
         san: String,
+    ) -> Result<Box<InProgress>, GameHandlerError> {
+        Err(GameHandlerError {
+            message: "Forbidden game action".to_string(),
+        })
+    }
+
+    #[allow(unused_variables)]
+    async fn defect_to(
+        &self,
+        handler: &mut GameHandler,
+        color: &str,
     ) -> Result<Box<InProgress>, GameHandlerError> {
         Err(GameHandlerError {
             message: "Forbidden game action".to_string(),
@@ -294,6 +319,38 @@ impl HandlerState for InProgress {
                 }
                 Err(_) => Err(GameHandlerError {
                     message: "Illegal move".to_string(),
+                }),
+            }
+        }
+    }
+
+    async fn defect_to(
+        &self,
+        handler: &mut GameHandler,
+        color_str: &str,
+    ) -> Result<Box<InProgress>, GameHandlerError> {
+        let game = &mut handler.game;
+        let user = &handler.user;
+        let current_fen = game.moves.last().unwrap().fen.clone();
+        let mut pos = chessops::Position::from_fen(current_fen.clone());
+
+        if !game.is_users_turn(pos.active_player(), user) {
+            Err(GameHandlerError {
+                message: "Not your turn".to_string(),
+            })
+        } else {
+            let color = chessops::Color::from_str(color_str).expect("Invalid color code");
+            match pos.defect_to(color) {
+                Ok(()) => {
+                    game.state = GameState::InProgress;
+                    let san = format!("action:defect:{}", color_str.to_lowercase());
+                    game.add_move(pos.to_fen(), san);
+                    db::save_game_move(&handler.db, &game).await;
+
+                    Ok(Box::new(InProgress {}))
+                }
+                Err(_) => Err(GameHandlerError {
+                    message: format!("Cannot defect to {:?}", color),
                 }),
             }
         }

@@ -260,11 +260,53 @@ impl Position {
             }
         }
     }
+
+    pub fn defect_to(&mut self, color: Color) -> Result<(), PlayError> {
+        match self.active_player {
+            Player::P1 => {
+                if !self.p1_controlled.contains(&color) {
+                    return Err(PlayError {});
+                }
+
+                // Swap King
+                let piece = Piece::new(self.p1_owned.unwrap(), Role::King);
+                let square = self.board.find(&piece).unwrap();
+                self.board.remove_piece(piece.clone());
+                self.board
+                    .insert_piece(square.clone(), Piece::new(color, Role::King));
+
+                // Update armies
+                self.p1_controlled.remove(&color);
+                self.p1_owned = Some(color);
+            }
+            Player::P2 => {
+                if !self.p2_controlled.contains(&color) {
+                    return Err(PlayError {});
+                }
+
+                // Swap King
+                let piece = Piece::new(self.p2_owned.unwrap(), Role::King);
+                let square = self.board.find(&piece).unwrap();
+                self.board.remove_piece(piece.clone());
+                self.board
+                    .insert_piece(square.clone(), Piece::new(color, Role::King));
+
+                // Update armies
+                self.p2_controlled.remove(&color);
+                self.p2_owned = Some(color);
+            }
+        }
+
+        self.active_player = self.active_player.next();
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chessops::Square;
 
     #[test]
     fn from_fen_works() {
@@ -320,5 +362,22 @@ mod tests {
 
         assert_eq!(new_pos.active_player, Player::P2);
         assert_eq!(new_pos.ply, 1);
+    }
+
+    #[test]
+    fn defect_to_works() {
+        let fen =
+            String::from("08bk07/16/16/16/16/16/16/16/16/16/16/04wq11/16/16/16/08wk07 1 w n b - 0");
+        let mut pos = Position::from_fen(fen);
+
+        let _ = pos.defect_to(Color::Navy);
+
+        assert_eq!(pos.p1_owned, Some(Color::Navy));
+        assert!(pos.p1_controlled.is_empty());
+        assert_eq!(
+            pos.board.get(&Square::I1),
+            Some(&Piece::new(Color::Navy, Role::King))
+        );
+        assert_eq!(pos.active_player, Player::P2);
     }
 }

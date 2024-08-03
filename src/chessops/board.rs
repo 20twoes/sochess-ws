@@ -88,8 +88,20 @@ impl Board {
     }
 
     #[cfg(test)]
-    pub fn get(&self, square: Square) -> Option<&Piece> {
-        self.by_square.get(&square)
+    pub fn get(&self, square: &Square) -> Option<&Piece> {
+        self.by_square.get(square)
+    }
+
+    pub fn find(&self, piece: &Piece) -> Option<Square> {
+        // TODO: Should catch these errors and return None
+        let bitboard = self
+            .by_piece
+            .get(piece)
+            .expect(&format!("Piece not found: {:?}", piece));
+        let index = bitboard
+            .least_significant_bit()
+            .expect("Bitboard was empty");
+        Some(Square::from_index(index))
     }
 
     pub fn is_legal_move(
@@ -284,7 +296,7 @@ mod tests {
         board.insert_piece(square.clone(), piece.clone());
         board.remove_piece(piece.clone());
 
-        assert!(board.get(square.clone()).is_none());
+        assert!(board.get(&square).is_none());
         assert!(board.by_square.get(&square).is_none());
         assert!(board.by_piece.get(&piece).is_none());
         assert!(!board

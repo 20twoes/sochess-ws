@@ -33,6 +33,12 @@ impl Color {
         }
     }
 
+    /// Useful when you have the color code in a string slice.
+    pub fn from_str(s: &str) -> Option<Self> {
+        let ch = s.to_lowercase().chars().nth(0).expect("Invalid color code");
+        Color::from_char(ch)
+    }
+
     pub fn to_char(&self) -> char {
         match self {
             Self::Ash => 'a',
