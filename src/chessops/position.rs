@@ -146,6 +146,8 @@ impl Position {
 
         self.update_controlled_armies(new_move);
 
+        // Make sure we update the `active_player` after we're done updating the board, since the
+        // logic is dependent on this field.
         self.active_player = self.active_player.next();
         self.ply += 1;
         Ok(self)
@@ -156,19 +158,28 @@ impl Position {
 
         let role = if let Some(role) = &move_.promotion {
             if *role == Role::King {
-                // Remove existing King since we're promoting to a new King
                 match self.active_player {
                     Player::P1 => {
+                        // Remove existing King since we're promoting to a new King
                         self.board.remove_piece(Piece::new(
                             self.p1_owned.expect("p1_owned should not be None"),
                             Role::King,
                         ));
+
+                        // If King is a different color, update our owned an controlled armies
+                        self.p1_owned = Some(move_.color.clone());
+                        self.p1_controlled.remove(&move_.color);
                     }
                     Player::P2 => {
+                        // Remove existing King since we're promoting to a new King
                         self.board.remove_piece(Piece::new(
                             self.p2_owned.expect("p2_owned should not be None"),
                             Role::King,
                         ));
+
+                        // If King is a different color, update our owned an controlled armies
+                        self.p2_owned = Some(move_.color.clone());
+                        self.p2_controlled.remove(&move_.color);
                     }
                 }
             }
