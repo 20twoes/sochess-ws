@@ -31,7 +31,9 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
     }
 
     let cloned_state = state.clone();
+    let cloned_user = user.clone();
     let tx = state.tx.clone();
+    const ERR_PREFIX: &'static str = "error:";
 
     // Wait for messages and broadcast them to all subscribers
     let mut recv_task = tokio::spawn(async move {
@@ -47,7 +49,8 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
             // Determine message type
             // Process message
             // Broadcast update to all clients
-            let mut handler = GameHandler::new(game.clone(), user.clone(), cloned_state.db.clone());
+            let mut handler =
+                GameHandler::new(game.clone(), cloned_user.clone(), cloned_state.db.clone());
             let json = handler
                 .read(&msg)
                 .expect("Failed to parse websocket message");
@@ -65,7 +68,11 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
                     }
                 }
                 Err(err) => {
-                    let _ = tx.send(serde_json::to_string(&err).unwrap());
+                    // HACK: Add a prefix so we can send errors only to the user who made the move.
+                    let msg = ERR_PREFIX.to_string()
+                        + &cloned_user.name
+                        + &serde_json::to_string(&err).unwrap();
+                    let _ = tx.send(msg);
                 }
             }
         }
@@ -76,8 +83,22 @@ pub async fn serve_play_game(socket: WebSocket, id: String, state: SharedState, 
     // Receive broadcast messages from above and forward them to all clients
     let mut send_task = tokio::spawn(async move {
         while let Ok(msg) = rx.recv().await {
-            if sender.send(Message::Text(msg)).await.is_err() {
-                break;
+            // If the message contains a username, then we only send that message to the
+            // appropriate user
+            if msg.starts_with(ERR_PREFIX) {
+                let for_this_user = ERR_PREFIX.to_string() + &user.name;
+
+                if msg.starts_with(&for_this_user) {
+                    let parts: Vec<&str> = msg.as_str().split(&for_this_user).collect();
+                    let data = parts[1]; // First part will be an empty string
+                    if sender.send(Message::Text(data.to_string())).await.is_err() {
+                        break;
+                    }
+                }
+            } else {
+                if sender.send(Message::Text(msg)).await.is_err() {
+                    break;
+                }
             }
         }
     });
