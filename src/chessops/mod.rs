@@ -23,7 +23,7 @@ pub use lookup_tables::LookupTables;
 pub use move_type::Move;
 pub use piece::Piece;
 pub use player::Player;
-pub use position::Position;
+pub use position::{Position, PositionError};
 pub use quadrant::Quadrant;
 pub use rank::Rank;
 pub use role::Role;

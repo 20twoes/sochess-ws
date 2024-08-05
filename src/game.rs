@@ -13,6 +13,7 @@ pub enum GameState {
     Accepted,
     FirstMove,
     InProgress,
+    DefectMoveKing,
     Ended,
 }
 

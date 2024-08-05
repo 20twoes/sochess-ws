@@ -1,6 +1,6 @@
 use crate::chessops::{Color, File, Rank, BOARD_SIZE, BOARD_WIDTH};
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[repr(u16)]
 pub enum Square {
     A1 = 0,
@@ -289,7 +289,7 @@ impl Square {
     }
 
     pub fn to_index(&self) -> usize {
-        self.clone() as usize
+        *self as usize
     }
 
     pub fn file(&self) -> File {

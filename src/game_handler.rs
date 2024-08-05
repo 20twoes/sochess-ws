@@ -56,6 +56,12 @@ impl GameHandler {
                 user: user,
                 db: db_handle,
             },
+            GameState::DefectMoveKing => Self {
+                state: Some(Box::new(DefectMoveKing {})),
+                game: game,
+                user: user,
+                db: db_handle,
+            },
             _ => todo!(),
         }
     }
@@ -194,7 +200,7 @@ trait HandlerState {
         &self,
         handler: &mut GameHandler,
         color: &str,
-    ) -> Result<Box<InProgress>, GameHandlerError> {
+    ) -> Result<Box<dyn HandlerState + Send + Sync>, GameHandlerError> {
         Err(GameHandlerError {
             message: "Forbidden game action".to_string(),
         })
@@ -205,6 +211,7 @@ struct Created {}
 struct Accepted {}
 struct FirstMove {}
 struct InProgress {}
+struct DefectMoveKing {}
 
 #[async_trait]
 impl HandlerState for Created {
@@ -244,8 +251,8 @@ impl HandlerState for Accepted {
 
                     Ok(Box::new(FirstMove {}))
                 }
-                Err(_) => Err(GameHandlerError {
-                    message: "Illegal move".to_string(),
+                Err(err) => Err(GameHandlerError {
+                    message: error_to_str(err).to_string(),
                 }),
             }
         }
@@ -317,8 +324,8 @@ impl HandlerState for InProgress {
 
                     Ok(Box::new(InProgress {}))
                 }
-                Err(_) => Err(GameHandlerError {
-                    message: "Illegal move".to_string(),
+                Err(err) => Err(GameHandlerError {
+                    message: error_to_str(err).to_string(),
                 }),
             }
         }
@@ -328,7 +335,7 @@ impl HandlerState for InProgress {
         &self,
         handler: &mut GameHandler,
         color_str: &str,
-    ) -> Result<Box<InProgress>, GameHandlerError> {
+    ) -> Result<Box<dyn HandlerState + Send + Sync>, GameHandlerError> {
         let game = &mut handler.game;
         let user = &handler.user;
         let current_fen = game.moves.last().unwrap().fen.clone();
@@ -349,10 +356,69 @@ impl HandlerState for InProgress {
 
                     Ok(Box::new(InProgress {}))
                 }
-                Err(_) => Err(GameHandlerError {
-                    message: format!("Cannot defect to {:?}", color),
+                Err(err) => match err {
+                    chessops::PositionError::DefectMoveKing => {
+                        game.state = GameState::DefectMoveKing;
+                        let san = format!("action:defect:{}*", color_str.to_lowercase());
+                        game.add_move(pos.to_fen(), san);
+                        db::save_game_move(&handler.db, &game).await;
+
+                        Ok(Box::new(DefectMoveKing {}))
+                    }
+                    _ => {
+                        return Err(GameHandlerError {
+                            message: format!("Cannot defect to {:?}", color),
+                        });
+                    }
+                },
+            }
+        }
+    }
+}
+
+#[async_trait]
+impl HandlerState for DefectMoveKing {
+    async fn play_move(
+        &self,
+        handler: &mut GameHandler,
+        san: String,
+    ) -> Result<Box<InProgress>, GameHandlerError> {
+        let game = &mut handler.game;
+        let user = &handler.user;
+        let current_fen = game.moves.last().unwrap().fen.clone();
+        let mut pos = chessops::Position::from_fen(current_fen.clone());
+
+        if !game.is_users_turn(pos.active_player(), user) {
+            Err(GameHandlerError {
+                message: "Not your turn".to_string(),
+            })
+        } else {
+            let chess_move = chessops::Move::from_san(&san);
+            match pos.play_move_after_defect(&chess_move) {
+                Ok(new_pos) => {
+                    game.add_move(new_pos.to_fen(), san.clone());
+                    game.state = GameState::InProgress;
+                    db::save_game_move(&handler.db, &handler.game).await;
+
+                    Ok(Box::new(InProgress {}))
+                }
+                Err(err) => Err(GameHandlerError {
+                    message: error_to_str(err).to_string(),
                 }),
             }
+        }
+    }
+}
+
+fn error_to_str(err: chessops::PositionError) -> &'static str {
+    match err {
+        chessops::PositionError::IllegalMove => "Illegal move",
+        chessops::PositionError::NotOwnColor => "You do not control that piece",
+        chessops::PositionError::FirstMoveNotWhite => {
+            "You must move a white piece as the first move"
+        }
+        chessops::PositionError::DefectMoveKing => {
+            "You must move your King since it is on a square of its own color"
         }
     }
 }

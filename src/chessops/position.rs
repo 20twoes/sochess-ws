@@ -1,11 +1,16 @@
 use std::collections::HashSet;
 
-use crate::chessops::{Board, Color, Fen, Move, Piece, Player, Role};
+use crate::chessops::{Board, Color, Fen, Move, Piece, Player, Role, Square};
 
 const INITIAL_FEN: &'static str = "aqabvrvnbrbnbbbqbkbbbnbrynyrsbsq/aranvpvpbpbpbpbpbpbpbpbpypypsnsr/nbnp12opob/nqnp12opoq/crcp12rprr/cncp12rprn/gbgp12pppb/gqgp12pppq/yqyp12vpvq/ybyp12vpvb/onop12npnn/orop12npnr/rqrp12cpcq/rbrp12cpcb/srsnppppwpwpwpwpwpwpwpwpgpgpanar/sqsbprpnwrwnwbwqwkwbwnwrgngrabaq 1 - - - - 0";
 
-#[derive(Debug)]
-pub struct PlayError {}
+#[derive(Debug, PartialEq)]
+pub enum PositionError {
+    IllegalMove,
+    NotOwnColor,
+    FirstMoveNotWhite,
+    DefectMoveKing,
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Position {
@@ -96,16 +101,24 @@ impl Position {
         self.active_player.to_int()
     }
 
-    pub fn play_move(&mut self, new_move: &Move) -> Result<&Self, PlayError> {
+    pub fn play_move_after_defect(&mut self, move_: &Move) -> Result<&Self, PositionError> {
+        if move_.role != Role::King {
+            return Err(PositionError::DefectMoveKing);
+        }
+
+        self.play_move(move_)
+    }
+
+    pub fn play_move(&mut self, new_move: &Move) -> Result<&Self, PositionError> {
         if self.p1_owned.is_none() {
             // Must be the first move of the game,
             // thus it must be a white piece that is moved.
             if new_move.color != Color::White {
-                return Err(PlayError {});
+                return Err(PositionError::FirstMoveNotWhite);
             }
         } else if !self.does_color_belong_to_user(&new_move.color) {
             // Check if user owns or controls this army
-            return Err(PlayError {});
+            return Err(PositionError::NotOwnColor);
         }
 
         // Collect any colors not controlled by the opponent
@@ -139,7 +152,7 @@ impl Position {
         };
 
         if !self.board.is_legal_move(&new_move, &own_side, &other_side) {
-            return Err(PlayError {});
+            return Err(PositionError::IllegalMove);
         }
 
         self.update_board(new_move);
@@ -261,39 +274,53 @@ impl Position {
         }
     }
 
-    pub fn defect_to(&mut self, color: Color) -> Result<(), PlayError> {
+    pub fn defect_to(&mut self, color: Color) -> Result<(), PositionError> {
+        fn is_king_on_own_color_square(piece: &Piece, sq: &Square) -> bool {
+            sq.color() == Some(piece.color)
+        }
+
         match self.active_player {
             Player::P1 => {
                 if !self.p1_controlled.contains(&color) {
-                    return Err(PlayError {});
+                    return Err(PositionError::IllegalMove);
                 }
 
                 // Swap King
                 let piece = Piece::new(self.p1_owned.unwrap(), Role::King);
                 let square = self.board.find(&piece).unwrap();
                 self.board.remove_piece(piece.clone());
-                self.board
-                    .insert_piece(square.clone(), Piece::new(color, Role::King));
+
+                let new_piece = Piece::new(color, Role::King);
+                self.board.insert_piece(square.clone(), new_piece.clone());
 
                 // Update armies
                 self.p1_controlled.remove(&color);
                 self.p1_owned = Some(color);
+
+                if is_king_on_own_color_square(&new_piece, &square) {
+                    return Err(PositionError::DefectMoveKing);
+                }
             }
             Player::P2 => {
                 if !self.p2_controlled.contains(&color) {
-                    return Err(PlayError {});
+                    return Err(PositionError::IllegalMove);
                 }
 
                 // Swap King
                 let piece = Piece::new(self.p2_owned.unwrap(), Role::King);
                 let square = self.board.find(&piece).unwrap();
                 self.board.remove_piece(piece.clone());
-                self.board
-                    .insert_piece(square.clone(), Piece::new(color, Role::King));
+
+                let new_piece = Piece::new(color, Role::King);
+                self.board.insert_piece(square.clone(), new_piece.clone());
 
                 // Update armies
                 self.p2_controlled.remove(&color);
                 self.p2_owned = Some(color);
+
+                if is_king_on_own_color_square(&new_piece, &square) {
+                    return Err(PositionError::DefectMoveKing);
+                }
             }
         }
 
@@ -306,7 +333,6 @@ impl Position {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chessops::Square;
 
     #[test]
     fn from_fen_works() {
@@ -379,5 +405,23 @@ mod tests {
             Some(&Piece::new(Color::Navy, Role::King))
         );
         assert_eq!(pos.active_player, Player::P2);
+    }
+
+    #[test]
+    fn defect_to_with_king_on_own_color_square_works() {
+        let fen =
+            String::from("08bk07/16/16/16/16/16/16/16/16/16/16/04wk11/16/16/16/16 1 w n b - 0");
+        let mut pos = Position::from_fen(fen);
+
+        let result = pos.defect_to(Color::Navy);
+
+        assert!(result.is_err_and(|e| e == PositionError::DefectMoveKing));
+        assert_eq!(pos.p1_owned, Some(Color::Navy));
+        assert!(pos.p1_controlled.is_empty());
+        assert_eq!(
+            pos.board.get(&Square::E5),
+            Some(&Piece::new(Color::Navy, Role::King))
+        );
+        assert_eq!(pos.active_player, Player::P1);
     }
 }

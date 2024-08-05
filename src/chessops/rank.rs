@@ -1,5 +1,5 @@
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u8)]
 pub enum Rank {
     R1 = 0,
@@ -39,7 +39,7 @@ impl Rank {
     }
 
     pub fn to_index(&self) -> usize {
-        self.clone() as usize
+        *self as usize
     }
 }
 
