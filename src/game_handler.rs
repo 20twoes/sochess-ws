@@ -367,7 +367,7 @@ impl HandlerState for InProgress {
                     }
                     _ => {
                         return Err(GameHandlerError {
-                            message: format!("Cannot defect to {:?}", color),
+                            message: format!("Cannot defect to {:?}.  You can only defect to a color you control.", color),
                         });
                     }
                 },
